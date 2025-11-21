@@ -9,6 +9,21 @@ const TurnosList = () => {
   const [showForm, setShowForm] = useState(false);
   const [editingTurno, setEditingTurno] = useState(null);
 
+  // FunciÃ³n para formatear hora de "0000-01-01T07:15:00Z" a "07:15"
+  const formatTime = (timeString) => {
+    if (!timeString) return '';
+    // Si ya estÃ¡ en formato HH:MM:SS, extraer solo HH:MM
+    if (timeString.includes(':') && !timeString.includes('T')) {
+      return timeString.substring(0, 5);
+    }
+    // Si es timestamp ISO, extraer la parte de hora
+    const timePart = timeString.split('T')[1];
+    if (timePart) {
+      return timePart.substring(0, 5); // HH:MM
+    }
+    return timeString;
+  };
+
   useEffect(() => {
     fetchTurnos();
   }, []);
@@ -30,7 +45,7 @@ const TurnosList = () => {
   };
 
   const handleDelete = async (id) => {
-    if (window.confirm('¿Está seguro de eliminar este turno?')) {
+    if (window.confirm('ï¿½Estï¿½ seguro de eliminar este turno?')) {
       try {
         await turnoService.delete(id);
         fetchTurnos();
@@ -51,7 +66,7 @@ const TurnosList = () => {
   return (
     <div className="docentes-container">
       <div className="docentes-header">
-        <h2>Gestión de Turnos</h2>
+        <h2>Gestiï¿½n de Turnos</h2>
         <button onClick={() => setShowForm(true)} className="btn-primary">
           + Nuevo Turno
         </button>
@@ -83,8 +98,8 @@ const TurnosList = () => {
             {turnos.map((turno) => (
               <tr key={turno.id}>
                 <td>{turno.nombre}</td>
-                <td>{turno.hora_inicio}</td>
-                <td>{turno.hora_fin}</td>
+                <td>{formatTime(turno.hora_inicio)}</td>
+                <td>{formatTime(turno.hora_fin)}</td>
                 <td>
                   <span className={`status ${turno.activo ? 'activo' : 'inactivo'}`}>
                     {turno.activo ? 'Activo' : 'Inactivo'}

@@ -200,10 +200,10 @@ CREATE INDEX idx_registros_excepcionales ON registros(es_excepcional) WHERE es_e
 
 -- Turnos iniciales
 INSERT INTO turnos (nombre, hora_inicio, hora_fin, descripcion) VALUES
-('Madrugada', '00:00:00', '06:00:00', 'Turno de madrugada'),
-('Mañana', '06:00:00', '12:00:00', 'Turno matutino'),
-('Tarde', '12:00:00', '18:00:00', 'Turno vespertino'),
-('Noche', '18:00:00', '23:59:59', 'Turno nocturno')
+('Mañana', '07:15:00', '10:15:00', 'Turno matutino 07:15 - 10:15'),
+('Mediodía', '10:30:00', '13:30:00', 'Turno de mediodía 10:30 - 13:30'),
+('Tarde', '15:00:00', '18:00:00', 'Turno vespertino 15:00 - 18:00'),
+('Noche', '19:00:00', '22:00:00', 'Turno nocturno 19:00 - 22:00')
 ON CONFLICT (nombre) DO NOTHING;
 
 -- Usuarios de prueba (password para todos: password123)
