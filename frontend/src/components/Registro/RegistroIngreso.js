@@ -49,6 +49,17 @@ const RegistroIngreso = () => {
       const docenteData = docenteRes.data;
       setDocente(docenteData);
 
+      // Buscar la llave actual del docente (para salidas automáticas)
+      try {
+        const llaveActualRes = await registroService.getLlaveActual(docenteData.id);
+        if (llaveActualRes.data && llaveActualRes.data.llave_id) {
+          setLlaveID(llaveActualRes.data.llave_id);
+          console.log('Llave actual detectada:', llaveActualRes.data.llave_id);
+        }
+      } catch (err) {
+        console.log('No se encontró llave actual');
+      }
+
       // Buscar asignaciones del docente
       try {
         const asignacionesRes = await asignacionService.getByDocenteYFecha(
@@ -63,7 +74,8 @@ const RegistroIngreso = () => {
           const primeraAsignacion = asignacionesData[0];
           setSelectedAmbiente(primeraAsignacion.ambiente_id);
           setSelectedTurno(primeraAsignacion.turno_id);
-          if (primeraAsignacion.llave_id) {
+          // Solo usar la llave de la asignación si no hay una llave actual detectada
+          if (!llaveID && primeraAsignacion.llave_id) {
             setLlaveID(primeraAsignacion.llave_id);
           }
         }
@@ -268,16 +280,16 @@ const RegistroIngreso = () => {
             </div>
 
             <div className="form-group">
-              <label>🔑 ID de Llave (Opcional)</label>
+              <label>🔑 ID de Llave</label>
               <input
                 type="number"
                 value={llaveID}
                 onChange={(e) => setLlaveID(e.target.value)}
                 placeholder="Ingrese el ID de la llave (opcional)"
               />
-              {asignaciones.length > 0 && llaveID && (
-                <small className="form-text">
-                  ✓ Auto-completado desde asignación
+              {llaveID && (
+                <small className="form-text" style={{ color: '#28a745' }}>
+                  ✓ Llave detectada automáticamente
                 </small>
               )}
             </div>

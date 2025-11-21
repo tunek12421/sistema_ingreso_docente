@@ -46,6 +46,7 @@ func Setup(r *mux.Router, h *Handlers) {
 	api.Handle("/registros/ingreso", middleware.RequireRole(entities.RolBibliotecario, entities.RolJefeCarrera)(http.HandlerFunc(h.Registro.RegistrarIngreso))).Methods("POST")
 	api.Handle("/registros/salida", middleware.RequireRole(entities.RolBibliotecario, entities.RolJefeCarrera)(http.HandlerFunc(h.Registro.RegistrarSalida))).Methods("POST")
 	api.Handle("/registros/hoy", middleware.RequireRole(entities.RolBibliotecario, entities.RolJefeCarrera)(http.HandlerFunc(h.Registro.GetRegistrosHoy))).Methods("GET")
+	api.Handle("/registros/llave-actual", middleware.RequireRole(entities.RolBibliotecario, entities.RolJefeCarrera)(http.HandlerFunc(h.Registro.GetLlaveActual))).Methods("GET")
 	api.Handle("/registros", middleware.RequireRole(entities.RolBibliotecario, entities.RolJefeCarrera)(http.HandlerFunc(h.Registro.GetByFecha))).Methods("GET")
 
 	// ==================== TURNOS ====================

@@ -160,12 +160,27 @@ func (uc *RegistroUseCase) GetRegistrosHoy() ([]*entities.Registro, error) {
 	return uc.registroRepo.FindRegistrosHoy()
 }
 
-func (uc *RegistroUseCase) calcularRetraso(ahora time.Time, horaInicio string) int {
-	// Parsear hora de inicio del turno
-	layout := "15:04:05"
-	inicio, err := time.Parse(layout, horaInicio)
+func (uc *RegistroUseCase) GetLlaveActualDocente(docenteID int) (*int, error) {
+	registro, err := uc.registroRepo.FindUltimoIngresoConLlave(docenteID)
 	if err != nil {
-		return 0
+		return nil, err
+	}
+	return registro.LlaveID, nil
+}
+
+func (uc *RegistroUseCase) calcularRetraso(ahora time.Time, horaInicio string) int {
+	// Parsear hora de inicio del turno (puede venir como "15:04:05" o "0000-01-01T15:00:00Z")
+	var inicio time.Time
+	var err error
+
+	// Intentar parsear como timestamp ISO primero
+	inicio, err = time.Parse(time.RFC3339, horaInicio)
+	if err != nil {
+		// Si falla, intentar como hora simple
+		inicio, err = time.Parse("15:04:05", horaInicio)
+		if err != nil {
+			return 0
+		}
 	}
 
 	// Combinar fecha actual con hora de inicio del turno
@@ -181,10 +196,18 @@ func (uc *RegistroUseCase) calcularRetraso(ahora time.Time, horaInicio string) i
 }
 
 func (uc *RegistroUseCase) calcularMinutosExtra(ahora time.Time, horaFin string) int {
-	layout := "15:04:05"
-	fin, err := time.Parse(layout, horaFin)
+	// Parsear hora de fin del turno (puede venir como "18:00:00" o "0000-01-01T18:00:00Z")
+	var fin time.Time
+	var err error
+
+	// Intentar parsear como timestamp ISO primero
+	fin, err = time.Parse(time.RFC3339, horaFin)
 	if err != nil {
-		return 0
+		// Si falla, intentar como hora simple
+		fin, err = time.Parse("15:04:05", horaFin)
+		if err != nil {
+			return 0
+		}
 	}
 
 	horaFinTurno := time.Date(ahora.Year(), ahora.Month(), ahora.Day(),

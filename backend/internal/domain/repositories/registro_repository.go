@@ -12,6 +12,7 @@ type RegistroRepository interface {
 	FindByFecha(fecha time.Time) ([]*entities.Registro, error)
 	FindByDocenteYFecha(docenteID int, fecha time.Time) ([]*entities.Registro, error)
 	FindRegistrosHoy() ([]*entities.Registro, error)
+	FindUltimoIngresoConLlave(docenteID int) (*entities.Registro, error)
 	Create(registro *entities.Registro) error
 	Update(registro *entities.Registro) error
 	Delete(id int) error

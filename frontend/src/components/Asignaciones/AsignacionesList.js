@@ -39,6 +39,17 @@ const AsignacionesList = () => {
     }
   };
 
+  const formatTime = (timeString) => {
+    if (!timeString) return '';
+    // Si ya está en formato HH:MM:SS, extraer solo HH:MM
+    if (timeString.includes(':') && !timeString.includes('T')) {
+      return timeString.substring(0, 5);
+    }
+    // Si es un timestamp completo
+    const date = new Date(timeString);
+    return date.toLocaleTimeString('es-BO', { hour: '2-digit', minute: '2-digit', hour12: false });
+  };
+
   const getDocenteNombre = (docenteId) => {
     const docente = docentes.find(d => d.id === docenteId);
     return docente ? docente.nombre_completo : 'N/A';
@@ -46,7 +57,7 @@ const AsignacionesList = () => {
 
   const getTurnoNombre = (turnoId) => {
     const turno = turnos.find(t => t.id === turnoId);
-    return turno ? `${turno.nombre} (${turno.hora_inicio}-${turno.hora_fin})` : 'N/A';
+    return turno ? `${turno.nombre} (${formatTime(turno.hora_inicio)}-${formatTime(turno.hora_fin)})` : 'N/A';
   };
 
   const getAmbienteNombre = (ambienteId) => {

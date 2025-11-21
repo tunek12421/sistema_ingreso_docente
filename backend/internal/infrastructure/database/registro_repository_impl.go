@@ -129,6 +129,56 @@ func (r *RegistroRepositoryImpl) FindRegistrosHoy() ([]*entities.Registro, error
 	return r.scanRegistros(rows)
 }
 
+func (r *RegistroRepositoryImpl) FindUltimoIngresoConLlave(docenteID int) (*entities.Registro, error) {
+	// Buscar el último ingreso con llave que NO tenga una salida posterior
+	query := `
+		SELECT ing.id, ing.docente_id, ing.ambiente_id, ing.turno_id, ing.llave_id,
+		       ing.tipo, ing.fecha_hora, ing.minutos_retraso, ing.minutos_extra,
+		       ing.es_excepcional, ing.observaciones, ing.editado_por, ing.created_at, ing.updated_at
+		FROM registros ing
+		WHERE ing.docente_id = $1
+		  AND ing.tipo = 'ingreso'
+		  AND ing.llave_id IS NOT NULL
+		  AND DATE(ing.fecha_hora) = CURRENT_DATE
+		  AND NOT EXISTS (
+		      SELECT 1 FROM registros sal
+		      WHERE sal.docente_id = ing.docente_id
+		        AND sal.llave_id = ing.llave_id
+		        AND sal.tipo = 'salida'
+		        AND sal.fecha_hora > ing.fecha_hora
+		        AND DATE(sal.fecha_hora) = CURRENT_DATE
+		  )
+		ORDER BY ing.fecha_hora DESC
+		LIMIT 1`
+
+	registro := &entities.Registro{}
+	err := r.db.QueryRow(query, docenteID).Scan(
+		&registro.ID,
+		&registro.DocenteID,
+		&registro.AmbienteID,
+		&registro.TurnoID,
+		&registro.LlaveID,
+		&registro.Tipo,
+		&registro.FechaHora,
+		&registro.MinutosRetraso,
+		&registro.MinutosExtra,
+		&registro.EsExcepcional,
+		&registro.Observaciones,
+		&registro.EditadoPor,
+		&registro.CreatedAt,
+		&registro.UpdatedAt,
+	)
+
+	if err == sql.ErrNoRows {
+		return nil, fmt.Errorf("no se encontró ingreso con llave sin salida para hoy")
+	}
+	if err != nil {
+		return nil, err
+	}
+
+	return registro, nil
+}
+
 func (r *RegistroRepositoryImpl) Create(registro *entities.Registro) error {
 	query := `INSERT INTO registros (docente_id, ambiente_id, turno_id, llave_id, tipo, fecha_hora,
 	          minutos_retraso, minutos_extra, es_excepcional, observaciones, editado_por)

@@ -235,3 +235,31 @@ func (h *RegistroHandler) GetRegistrosHoy(w http.ResponseWriter, r *http.Request
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(registros)
 }
+
+func (h *RegistroHandler) GetLlaveActual(w http.ResponseWriter, r *http.Request) {
+	docenteIDStr := r.URL.Query().Get("docente_id")
+	if docenteIDStr == "" {
+		http.Error(w, `{"error":"docente_id es requerido"}`, http.StatusBadRequest)
+		return
+	}
+
+	var docenteID int
+	if _, err := fmt.Sscanf(docenteIDStr, "%d", &docenteID); err != nil {
+		http.Error(w, `{"error":"docente_id inválido"}`, http.StatusBadRequest)
+		return
+	}
+
+	llaveID, err := h.registroUseCase.GetLlaveActualDocente(docenteID)
+	if err != nil {
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(map[string]interface{}{
+			"llave_id": nil,
+		})
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(map[string]interface{}{
+		"llave_id": llaveID,
+	})
+}

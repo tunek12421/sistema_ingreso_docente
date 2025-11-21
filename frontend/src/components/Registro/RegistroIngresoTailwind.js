@@ -18,12 +18,13 @@ const RegistroIngresoTailwind = () => {
   const [loading, setLoading] = useState(false);
   const [searching, setSearching] = useState(false);
   const [message, setMessage] = useState({ type: '', text: '' });
+  const [modoSalida, setModoSalida] = useState(false); // Track if we're in exit mode
 
   // Cargar catálogos y registros
   useEffect(() => {
     loadCatalogos();
     loadRegistrosHoy();
-    loadTodasLasLlaves();
+    loadLlavesDisponibles(); // Al inicio, cargar llaves disponibles para ingreso
   }, []);
 
   // Cuando cambia la llave, deducir el ambiente automáticamente
@@ -61,14 +62,28 @@ const RegistroIngresoTailwind = () => {
     }
   };
 
-  const loadTodasLasLlaves = async () => {
+  const loadLlavesDisponibles = async () => {
     try {
       const res = await llaveService.getAll();
-      // Filtrar solo llaves disponibles (case insensitive)
+      // Filtrar solo llaves disponibles (para ingreso)
       const disponibles = (res.data || []).filter(llave =>
         llave.estado && llave.estado.toLowerCase() === 'disponible'
       );
       setLlaves(disponibles);
+    } catch (error) {
+      console.error('Error cargando llaves:', error);
+      setLlaves([]);
+    }
+  };
+
+  const loadLlavesEnUso = async () => {
+    try {
+      const res = await llaveService.getAll();
+      // Filtrar solo llaves en uso (para salida)
+      const enUso = (res.data || []).filter(llave =>
+        llave.estado && llave.estado.toLowerCase() === 'en_uso'
+      );
+      setLlaves(enUso);
     } catch (error) {
       console.error('Error cargando llaves:', error);
       setLlaves([]);
@@ -82,11 +97,28 @@ const RegistroIngresoTailwind = () => {
     setMessage({ type: '', text: '' });
     setDocente(null);
     setAsignaciones([]);
+    setSelectedLlave('');
+    setSelectedTurno('');
 
     try {
       const docenteRes = await docenteService.getByCI(parseInt(ci));
       const docenteData = docenteRes.data;
       setDocente(docenteData);
+
+      // Buscar la llave actual del docente (para detectar si tiene una llave en uso)
+      let llaveDetectada = null;
+      try {
+        const llaveActualRes = await registroService.getLlaveActual(docenteData.id);
+        if (llaveActualRes.data && llaveActualRes.data.llave_id) {
+          llaveDetectada = llaveActualRes.data.llave_id;
+          setSelectedLlave(llaveActualRes.data.llave_id);
+          console.log('Llave actual detectada:', llaveActualRes.data.llave_id);
+          // Si tiene llave en uso, cargar llaves en uso automáticamente
+          await loadLlavesEnUso();
+        }
+      } catch (err) {
+        console.log('No se encontró llave actual');
+      }
 
       try {
         const asignacionesRes = await asignacionService.getByDocenteYFecha(
@@ -99,7 +131,8 @@ const RegistroIngresoTailwind = () => {
         if (asignacionesData.length > 0) {
           const primeraAsignacion = asignacionesData[0];
           setSelectedTurno(primeraAsignacion.turno_id);
-          if (primeraAsignacion.llave_id) {
+          // Solo usar la llave de la asignación si no se detectó una llave en uso
+          if (!llaveDetectada && primeraAsignacion.llave_id) {
             setSelectedLlave(primeraAsignacion.llave_id);
           }
         }
@@ -154,9 +187,9 @@ const RegistroIngresoTailwind = () => {
       await registroService.registrarIngreso(data);
       setMessage({ type: 'success', text: '✓ Ingreso registrado exitosamente' });
 
-      // Recargar registros y llaves
+      // Recargar registros y llaves disponibles
       await loadRegistrosHoy();
-      await loadTodasLasLlaves();
+      await loadLlavesDisponibles();
 
       // Limpiar formulario
       setTimeout(() => {
@@ -217,9 +250,9 @@ const RegistroIngresoTailwind = () => {
       await registroService.registrarSalida(data);
       setMessage({ type: 'success', text: '✓ Salida registrada exitosamente' });
 
-      // Recargar registros y llaves
+      // Recargar registros y llaves disponibles
       await loadRegistrosHoy();
-      await loadTodasLasLlaves();
+      await loadLlavesDisponibles();
 
       // Limpiar formulario
       setTimeout(() => {
@@ -246,6 +279,21 @@ const RegistroIngresoTailwind = () => {
     if (!dateString) return '-';
     const date = new Date(dateString);
     return date.toLocaleTimeString('es-BO', { hour: '2-digit', minute: '2-digit' });
+  };
+
+  // Función para formatear hora de turno de "0000-01-01T07:15:00Z" a "07:15"
+  const formatTurnoTime = (timeString) => {
+    if (!timeString) return '';
+    // Si ya está en formato HH:MM:SS, extraer solo HH:MM
+    if (timeString.includes(':') && !timeString.includes('T')) {
+      return timeString.substring(0, 5);
+    }
+    // Si es timestamp ISO, extraer la parte de hora
+    const timePart = timeString.split('T')[1];
+    if (timePart) {
+      return timePart.substring(0, 5); // HH:MM
+    }
+    return timeString;
   };
 
   return (
@@ -328,10 +376,12 @@ const RegistroIngresoTailwind = () => {
                   ))}
                 </select>
                 {llaves.length === 0 && (
-                  <p className="text-red-600 text-xs mt-1 font-medium">⚠️ No hay llaves disponibles</p>
+                  <p className="text-red-600 text-xs mt-1 font-medium">
+                    ⚠️ No hay llaves disponibles para este docente
+                  </p>
                 )}
-                {asignaciones.length > 0 && selectedLlave && (
-                  <p className="text-green-600 text-xs mt-1 font-medium">✓ Auto-seleccionada desde asignación</p>
+                {selectedLlave && (
+                  <p className="text-green-600 text-xs mt-1 font-medium">✓ Llave detectada automáticamente</p>
                 )}
               </div>
 
@@ -362,7 +412,7 @@ const RegistroIngresoTailwind = () => {
                   <option value="">-- Seleccione un turno --</option>
                   {turnos.map(turno => (
                     <option key={turno.id} value={turno.id}>
-                      {turno.nombre} ({turno.hora_inicio} - {turno.hora_fin})
+                      {turno.nombre} ({formatTurnoTime(turno.hora_inicio)} - {formatTurnoTime(turno.hora_fin)})
                     </option>
                   ))}
                 </select>
@@ -403,7 +453,7 @@ const RegistroIngresoTailwind = () => {
             </div>
           )}
 
-          {/* Botones */}
+          {/* Botones de Acción */}
           {docente && (
             <div className="flex gap-4 mt-8">
               <button
@@ -456,7 +506,7 @@ const RegistroIngresoTailwind = () => {
                     key={registro.id}
                     className="bg-gray-50 rounded-lg p-4 border-l-4 hover:bg-gray-100 transition"
                     style={{
-                      borderLeftColor: registro.tipo === 'INGRESO' ? '#10b981' : '#ef4444'
+                      borderLeftColor: registro.tipo === 'ingreso' ? '#10b981' : '#ef4444'
                     }}
                   >
                     <div className="flex justify-between items-start mb-2">
@@ -465,11 +515,11 @@ const RegistroIngresoTailwind = () => {
                         <p className="text-sm text-gray-600">CI: {registro.docente_ci}</p>
                       </div>
                       <span className={`px-3 py-1 rounded-full text-xs font-bold ${
-                        registro.tipo === 'INGRESO'
+                        registro.tipo === 'ingreso'
                           ? 'bg-green-100 text-green-800'
                           : 'bg-red-100 text-red-800'
                       }`}>
-                        {registro.tipo === 'INGRESO' ? '→ INGRESO' : '← SALIDA'}
+                        {registro.tipo === 'ingreso' ? '→ INGRESO' : '← SALIDA'}
                       </span>
                     </div>
 
