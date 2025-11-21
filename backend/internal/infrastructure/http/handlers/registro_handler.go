@@ -89,7 +89,7 @@ func (h *RegistroHandler) RegistrarIngreso(w http.ResponseWriter, r *http.Reques
 		turnoID = *req.TurnoID
 	}
 
-	registro, err := h.registroUseCase.RegistrarIngreso(docente.ID, ambienteID, turnoID, llaveID)
+	registro, err := h.registroUseCase.RegistrarIngreso(docente.ID, ambienteID, turnoID, llaveID, req.Observaciones)
 	if err != nil {
 		http.Error(w, fmt.Sprintf(`{"error":"%s"}`, err.Error()), http.StatusBadRequest)
 		return
@@ -153,7 +153,7 @@ func (h *RegistroHandler) RegistrarSalida(w http.ResponseWriter, r *http.Request
 		turnoID = *req.TurnoID
 	}
 
-	registro, err := h.registroUseCase.RegistrarSalida(docente.ID, ambienteID, turnoID, llaveID)
+	registro, err := h.registroUseCase.RegistrarSalida(docente.ID, ambienteID, turnoID, llaveID, req.Observaciones)
 	if err != nil {
 		http.Error(w, fmt.Sprintf(`{"error":"%s"}`, err.Error()), http.StatusBadRequest)
 		return

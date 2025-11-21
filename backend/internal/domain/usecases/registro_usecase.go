@@ -29,7 +29,7 @@ func NewRegistroUseCase(
 	}
 }
 
-func (uc *RegistroUseCase) RegistrarIngreso(docenteID, ambienteID, turnoID int, llaveID *int) (*entities.Registro, error) {
+func (uc *RegistroUseCase) RegistrarIngreso(docenteID, ambienteID, turnoID int, llaveID *int, observaciones *string) (*entities.Registro, error) {
 	// Obtener turno para calcular retraso
 	turno, err := uc.turnoRepo.FindByID(turnoID)
 	if err != nil {
@@ -74,6 +74,7 @@ func (uc *RegistroUseCase) RegistrarIngreso(docenteID, ambienteID, turnoID int, 
 		MinutosRetraso: minutosRetraso,
 		MinutosExtra:   0,
 		EsExcepcional:  esExcepcional,
+		Observaciones:  observaciones,
 	}
 
 	if err := uc.registroRepo.Create(registro); err != nil {
@@ -88,7 +89,7 @@ func (uc *RegistroUseCase) RegistrarIngreso(docenteID, ambienteID, turnoID int, 
 	return registro, nil
 }
 
-func (uc *RegistroUseCase) RegistrarSalida(docenteID, ambienteID, turnoID int, llaveID *int) (*entities.Registro, error) {
+func (uc *RegistroUseCase) RegistrarSalida(docenteID, ambienteID, turnoID int, llaveID *int, observaciones *string) (*entities.Registro, error) {
 	// Obtener turno para calcular minutos extra
 	turno, err := uc.turnoRepo.FindByID(turnoID)
 	if err != nil {
@@ -132,6 +133,7 @@ func (uc *RegistroUseCase) RegistrarSalida(docenteID, ambienteID, turnoID int, l
 		MinutosRetraso: 0,
 		MinutosExtra:   minutosExtra,
 		EsExcepcional:  esExcepcional,
+		Observaciones:  observaciones,
 	}
 
 	if err := uc.registroRepo.Create(registro); err != nil {

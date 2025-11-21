@@ -5,14 +5,15 @@ const RegistroIngresoTailwind = () => {
   const [ci, setCI] = useState('');
   const [docente, setDocente] = useState(null);
   const [asignaciones, setAsignaciones] = useState([]);
-  const [ambientes, setAmbientes] = useState([]);
   const [turnos, setTurnos] = useState([]);
   const [registrosHoy, setRegistrosHoy] = useState([]);
-  const [llavesDisponibles, setLlavesDisponibles] = useState([]);
+  const [llaves, setLlaves] = useState([]);
+  const [ambientes, setAmbientes] = useState([]);
 
-  const [selectedAmbiente, setSelectedAmbiente] = useState('');
-  const [selectedTurno, setSelectedTurno] = useState('');
   const [selectedLlave, setSelectedLlave] = useState('');
+  const [selectedTurno, setSelectedTurno] = useState('');
+  const [observaciones, setObservaciones] = useState('');
+  const [ambienteDeducido, setAmbienteDeducido] = useState(null);
 
   const [loading, setLoading] = useState(false);
   const [searching, setSearching] = useState(false);
@@ -22,17 +23,21 @@ const RegistroIngresoTailwind = () => {
   useEffect(() => {
     loadCatalogos();
     loadRegistrosHoy();
+    loadTodasLasLlaves();
   }, []);
 
-  // Cargar llaves cuando cambia el ambiente
+  // Cuando cambia la llave, deducir el ambiente automáticamente
   useEffect(() => {
-    if (selectedAmbiente) {
-      loadLlavesDelAmbiente(selectedAmbiente);
+    if (selectedLlave && llaves.length > 0) {
+      const llave = llaves.find(l => l.id === parseInt(selectedLlave));
+      if (llave) {
+        const ambiente = ambientes.find(a => a.id === llave.ambiente_id);
+        setAmbienteDeducido(ambiente);
+      }
     } else {
-      setLlavesDisponibles([]);
-      setSelectedLlave('');
+      setAmbienteDeducido(null);
     }
-  }, [selectedAmbiente]);
+  }, [selectedLlave, llaves, ambientes]);
 
   const loadCatalogos = async () => {
     try {
@@ -56,15 +61,17 @@ const RegistroIngresoTailwind = () => {
     }
   };
 
-  const loadLlavesDelAmbiente = async (ambienteId) => {
+  const loadTodasLasLlaves = async () => {
     try {
-      const res = await llaveService.getByAmbiente(ambienteId);
-      // Filtrar solo llaves disponibles
-      const disponibles = (res.data || []).filter(llave => llave.estado === 'DISPONIBLE');
-      setLlavesDisponibles(disponibles);
+      const res = await llaveService.getAll();
+      // Filtrar solo llaves disponibles (case insensitive)
+      const disponibles = (res.data || []).filter(llave =>
+        llave.estado && llave.estado.toLowerCase() === 'disponible'
+      );
+      setLlaves(disponibles);
     } catch (error) {
       console.error('Error cargando llaves:', error);
-      setLlavesDisponibles([]);
+      setLlaves([]);
     }
   };
 
@@ -91,7 +98,6 @@ const RegistroIngresoTailwind = () => {
 
         if (asignacionesData.length > 0) {
           const primeraAsignacion = asignacionesData[0];
-          setSelectedAmbiente(primeraAsignacion.ambiente_id);
           setSelectedTurno(primeraAsignacion.turno_id);
           if (primeraAsignacion.llave_id) {
             setSelectedLlave(primeraAsignacion.llave_id);
@@ -118,8 +124,18 @@ const RegistroIngresoTailwind = () => {
       return;
     }
 
-    if (!selectedAmbiente || !selectedTurno) {
-      setMessage({ type: 'error', text: 'Debe seleccionar ambiente y turno' });
+    if (!selectedLlave) {
+      setMessage({ type: 'error', text: 'Debe seleccionar una llave' });
+      return;
+    }
+
+    if (!selectedTurno) {
+      setMessage({ type: 'error', text: 'Debe seleccionar un turno' });
+      return;
+    }
+
+    if (!ambienteDeducido) {
+      setMessage({ type: 'error', text: 'No se pudo determinar el ambiente de la llave' });
       return;
     }
 
@@ -129,25 +145,28 @@ const RegistroIngresoTailwind = () => {
     try {
       const data = {
         ci: parseInt(ci),
-        ambiente_id: parseInt(selectedAmbiente),
+        ambiente_id: ambienteDeducido.id,
         turno_id: parseInt(selectedTurno),
-        llave_id: selectedLlave ? parseInt(selectedLlave) : null,
+        llave_id: parseInt(selectedLlave),
+        observaciones: observaciones || null,
       };
 
       await registroService.registrarIngreso(data);
       setMessage({ type: 'success', text: '✓ Ingreso registrado exitosamente' });
 
-      // Recargar registros
+      // Recargar registros y llaves
       await loadRegistrosHoy();
+      await loadTodasLasLlaves();
 
       // Limpiar formulario
       setTimeout(() => {
         setCI('');
         setDocente(null);
         setAsignaciones([]);
-        setSelectedAmbiente('');
         setSelectedTurno('');
         setSelectedLlave('');
+        setObservaciones('');
+        setAmbienteDeducido(null);
         setMessage({ type: '', text: '' });
       }, 2000);
     } catch (error) {
@@ -168,8 +187,18 @@ const RegistroIngresoTailwind = () => {
       return;
     }
 
-    if (!selectedAmbiente || !selectedTurno) {
-      setMessage({ type: 'error', text: 'Debe seleccionar ambiente y turno' });
+    if (!selectedLlave) {
+      setMessage({ type: 'error', text: 'Debe seleccionar una llave' });
+      return;
+    }
+
+    if (!selectedTurno) {
+      setMessage({ type: 'error', text: 'Debe seleccionar un turno' });
+      return;
+    }
+
+    if (!ambienteDeducido) {
+      setMessage({ type: 'error', text: 'No se pudo determinar el ambiente de la llave' });
       return;
     }
 
@@ -179,25 +208,28 @@ const RegistroIngresoTailwind = () => {
     try {
       const data = {
         ci: parseInt(ci),
-        ambiente_id: parseInt(selectedAmbiente),
+        ambiente_id: ambienteDeducido.id,
         turno_id: parseInt(selectedTurno),
-        llave_id: selectedLlave ? parseInt(selectedLlave) : null,
+        llave_id: parseInt(selectedLlave),
+        observaciones: observaciones || null,
       };
 
       await registroService.registrarSalida(data);
       setMessage({ type: 'success', text: '✓ Salida registrada exitosamente' });
 
-      // Recargar registros
+      // Recargar registros y llaves
       await loadRegistrosHoy();
+      await loadTodasLasLlaves();
 
       // Limpiar formulario
       setTimeout(() => {
         setCI('');
         setDocente(null);
         setAsignaciones([]);
-        setSelectedAmbiente('');
         setSelectedTurno('');
         setSelectedLlave('');
+        setObservaciones('');
+        setAmbienteDeducido(null);
         setMessage({ type: '', text: '' });
       }, 2000);
     } catch (error) {
@@ -277,28 +309,44 @@ const RegistroIngresoTailwind = () => {
           {/* Campos del Formulario */}
           {docente && (
             <div className="space-y-5">
-              {/* Ambiente */}
+              {/* Llave - AHORA ES OBLIGATORIA Y VA PRIMERO */}
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
-                  🏢 Ambiente *
+                  🔑 Llave * (Obligatoria)
                 </label>
                 <select
-                  value={selectedAmbiente}
-                  onChange={(e) => setSelectedAmbiente(e.target.value)}
-                  className="w-full px-4 py-3 border-2 border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition"
+                  value={selectedLlave}
+                  onChange={(e) => setSelectedLlave(e.target.value)}
+                  className="w-full px-4 py-3 border-2 border-blue-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition"
                   required
                 >
-                  <option value="">-- Seleccione un ambiente --</option>
-                  {ambientes.map(amb => (
-                    <option key={amb.id} value={amb.id}>
-                      {amb.codigo} - {amb.nombre}
+                  <option value="">-- Seleccione una llave --</option>
+                  {llaves.map(llave => (
+                    <option key={llave.id} value={llave.id}>
+                      {llave.codigo} - {llave.descripcion || 'Sin descripción'}
                     </option>
                   ))}
                 </select>
-                {asignaciones.length > 0 && (
-                  <p className="text-green-600 text-xs mt-1 font-medium">✓ Auto-seleccionado</p>
+                {llaves.length === 0 && (
+                  <p className="text-red-600 text-xs mt-1 font-medium">⚠️ No hay llaves disponibles</p>
+                )}
+                {asignaciones.length > 0 && selectedLlave && (
+                  <p className="text-green-600 text-xs mt-1 font-medium">✓ Auto-seleccionada desde asignación</p>
                 )}
               </div>
+
+              {/* Ambiente - DEDUCIDO AUTOMÁTICAMENTE */}
+              {ambienteDeducido && (
+                <div className="bg-green-50 border-2 border-green-300 rounded-lg p-4">
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    🏢 Ambiente (Deducido de la llave)
+                  </label>
+                  <div className="text-lg font-bold text-green-800">
+                    {ambienteDeducido.codigo} - {ambienteDeducido.nombre}
+                  </div>
+                  <p className="text-green-600 text-xs mt-1">✓ Determinado automáticamente</p>
+                </div>
+              )}
 
               {/* Turno */}
               <div>
@@ -319,38 +367,28 @@ const RegistroIngresoTailwind = () => {
                   ))}
                 </select>
                 {asignaciones.length > 0 && (
-                  <p className="text-green-600 text-xs mt-1 font-medium">✓ Auto-seleccionado</p>
+                  <p className="text-green-600 text-xs mt-1 font-medium">✓ Auto-seleccionado desde asignación</p>
                 )}
               </div>
 
-              {/* Llave */}
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  🔑 Llave (Opcional)
-                </label>
-                <select
-                  value={selectedLlave}
-                  onChange={(e) => setSelectedLlave(e.target.value)}
-                  className="w-full px-4 py-3 border-2 border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition"
-                  disabled={!selectedAmbiente}
-                >
-                  <option value="">-- Sin llave --</option>
-                  {llavesDisponibles.map(llave => (
-                    <option key={llave.id} value={llave.id}>
-                      {llave.codigo} - {llave.descripcion || 'Sin descripción'}
-                    </option>
-                  ))}
-                </select>
-                {!selectedAmbiente && (
-                  <p className="text-gray-500 text-xs mt-1">Primero seleccione un ambiente</p>
-                )}
-                {selectedAmbiente && llavesDisponibles.length === 0 && (
-                  <p className="text-yellow-600 text-xs mt-1">⚠️ No hay llaves disponibles para este ambiente</p>
-                )}
-                {asignaciones.length > 0 && selectedLlave && (
-                  <p className="text-green-600 text-xs mt-1 font-medium">✓ Auto-seleccionada</p>
-                )}
-              </div>
+              {/* Observaciones - Solo visible para casos excepcionales */}
+              {asignaciones.length === 0 && (
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    📝 Observaciones (Recomendado para ingreso excepcional)
+                  </label>
+                  <textarea
+                    value={observaciones}
+                    onChange={(e) => setObservaciones(e.target.value)}
+                    placeholder="Ej: Ayuda a estudiantes, Reunión de departamento, Revisión de exámenes..."
+                    className="w-full px-4 py-3 border-2 border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition resize-none"
+                    rows="3"
+                  />
+                  <p className="text-gray-500 text-xs mt-1">
+                    Opcional: Explique el motivo del ingreso sin asignación
+                  </p>
+                </div>
+              )}
             </div>
           )}
 
@@ -371,7 +409,7 @@ const RegistroIngresoTailwind = () => {
               <button
                 type="button"
                 onClick={handleIngreso}
-                disabled={loading || !selectedAmbiente || !selectedTurno}
+                disabled={loading || !selectedLlave || !selectedTurno}
                 className="flex-1 bg-gradient-to-r from-green-500 to-green-600 text-white py-4 px-6 rounded-xl font-bold text-lg hover:from-green-600 hover:to-green-700 disabled:opacity-50 disabled:cursor-not-allowed transition transform hover:-translate-y-1 shadow-lg"
               >
                 {loading ? '⏳ Registrando...' : '→ Registrar Ingreso'}
@@ -380,7 +418,7 @@ const RegistroIngresoTailwind = () => {
               <button
                 type="button"
                 onClick={handleSalida}
-                disabled={loading || !selectedAmbiente || !selectedTurno}
+                disabled={loading || !selectedLlave || !selectedTurno}
                 className="flex-1 bg-gradient-to-r from-red-500 to-pink-600 text-white py-4 px-6 rounded-xl font-bold text-lg hover:from-red-600 hover:to-pink-700 disabled:opacity-50 disabled:cursor-not-allowed transition transform hover:-translate-y-1 shadow-lg"
               >
                 {loading ? '⏳ Registrando...' : '← Registrar Salida'}
