@@ -18,7 +18,7 @@ func NewRegistroRepository(db *sql.DB) *RegistroRepositoryImpl {
 
 func (r *RegistroRepositoryImpl) FindByID(id int) (*entities.Registro, error) {
 	query := `SELECT id, docente_id, ambiente_id, turno_id, llave_id, tipo, fecha_hora,
-	          minutos_retraso, minutos_extra, observaciones, editado_por, created_at, updated_at
+	          minutos_retraso, minutos_extra, es_excepcional, observaciones, editado_por, created_at, updated_at
 	          FROM registros WHERE id = $1`
 
 	registro := &entities.Registro{}
@@ -32,6 +32,7 @@ func (r *RegistroRepositoryImpl) FindByID(id int) (*entities.Registro, error) {
 		&registro.FechaHora,
 		&registro.MinutosRetraso,
 		&registro.MinutosExtra,
+		&registro.EsExcepcional,
 		&registro.Observaciones,
 		&registro.EditadoPor,
 		&registro.CreatedAt,
@@ -50,7 +51,7 @@ func (r *RegistroRepositoryImpl) FindByID(id int) (*entities.Registro, error) {
 
 func (r *RegistroRepositoryImpl) FindAll() ([]*entities.Registro, error) {
 	query := `SELECT id, docente_id, ambiente_id, turno_id, llave_id, tipo, fecha_hora,
-	          minutos_retraso, minutos_extra, observaciones, editado_por, created_at, updated_at
+	          minutos_retraso, minutos_extra, es_excepcional, observaciones, editado_por, created_at, updated_at
 	          FROM registros ORDER BY fecha_hora DESC LIMIT 100`
 
 	rows, err := r.db.Query(query)
@@ -64,7 +65,7 @@ func (r *RegistroRepositoryImpl) FindAll() ([]*entities.Registro, error) {
 
 func (r *RegistroRepositoryImpl) FindByDocente(docenteID int) ([]*entities.Registro, error) {
 	query := `SELECT id, docente_id, ambiente_id, turno_id, llave_id, tipo, fecha_hora,
-	          minutos_retraso, minutos_extra, observaciones, editado_por, created_at, updated_at
+	          minutos_retraso, minutos_extra, es_excepcional, observaciones, editado_por, created_at, updated_at
 	          FROM registros WHERE docente_id = $1 ORDER BY fecha_hora DESC`
 
 	rows, err := r.db.Query(query, docenteID)
@@ -81,7 +82,7 @@ func (r *RegistroRepositoryImpl) FindByFecha(fecha time.Time) ([]*entities.Regis
 	fin := inicio.Add(24 * time.Hour)
 
 	query := `SELECT id, docente_id, ambiente_id, turno_id, llave_id, tipo, fecha_hora,
-	          minutos_retraso, minutos_extra, observaciones, editado_por, created_at, updated_at
+	          minutos_retraso, minutos_extra, es_excepcional, observaciones, editado_por, created_at, updated_at
 	          FROM registros WHERE fecha_hora >= $1 AND fecha_hora < $2 ORDER BY fecha_hora DESC`
 
 	rows, err := r.db.Query(query, inicio, fin)
@@ -98,7 +99,7 @@ func (r *RegistroRepositoryImpl) FindByDocenteYFecha(docenteID int, fecha time.T
 	fin := inicio.Add(24 * time.Hour)
 
 	query := `SELECT id, docente_id, ambiente_id, turno_id, llave_id, tipo, fecha_hora,
-	          minutos_retraso, minutos_extra, observaciones, editado_por, created_at, updated_at
+	          minutos_retraso, minutos_extra, es_excepcional, observaciones, editado_por, created_at, updated_at
 	          FROM registros WHERE docente_id = $1 AND fecha_hora >= $2 AND fecha_hora < $3 ORDER BY fecha_hora DESC`
 
 	rows, err := r.db.Query(query, docenteID, inicio, fin)
@@ -110,10 +111,28 @@ func (r *RegistroRepositoryImpl) FindByDocenteYFecha(docenteID int, fecha time.T
 	return r.scanRegistros(rows)
 }
 
+func (r *RegistroRepositoryImpl) FindRegistrosHoy() ([]*entities.Registro, error) {
+	ahora := time.Now()
+	inicio := time.Date(ahora.Year(), ahora.Month(), ahora.Day(), 0, 0, 0, 0, ahora.Location())
+	fin := inicio.Add(24 * time.Hour)
+
+	query := `SELECT id, docente_id, ambiente_id, turno_id, llave_id, tipo, fecha_hora,
+	          minutos_retraso, minutos_extra, es_excepcional, observaciones, editado_por, created_at, updated_at
+	          FROM registros WHERE fecha_hora >= $1 AND fecha_hora < $2 ORDER BY fecha_hora DESC`
+
+	rows, err := r.db.Query(query, inicio, fin)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	return r.scanRegistros(rows)
+}
+
 func (r *RegistroRepositoryImpl) Create(registro *entities.Registro) error {
 	query := `INSERT INTO registros (docente_id, ambiente_id, turno_id, llave_id, tipo, fecha_hora,
-	          minutos_retraso, minutos_extra, observaciones, editado_por)
-	          VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10) RETURNING id, created_at, updated_at`
+	          minutos_retraso, minutos_extra, es_excepcional, observaciones, editado_por)
+	          VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11) RETURNING id, created_at, updated_at`
 
 	return r.db.QueryRow(
 		query,
@@ -125,6 +144,7 @@ func (r *RegistroRepositoryImpl) Create(registro *entities.Registro) error {
 		registro.FechaHora,
 		registro.MinutosRetraso,
 		registro.MinutosExtra,
+		registro.EsExcepcional,
 		registro.Observaciones,
 		registro.EditadoPor,
 	).Scan(&registro.ID, &registro.CreatedAt, &registro.UpdatedAt)
@@ -133,7 +153,7 @@ func (r *RegistroRepositoryImpl) Create(registro *entities.Registro) error {
 func (r *RegistroRepositoryImpl) Update(registro *entities.Registro) error {
 	query := `UPDATE registros SET docente_id = $1, ambiente_id = $2, turno_id = $3,
 	          llave_id = $4, tipo = $5, fecha_hora = $6, minutos_retraso = $7, minutos_extra = $8,
-	          observaciones = $9, editado_por = $10 WHERE id = $11 RETURNING updated_at`
+	          es_excepcional = $9, observaciones = $10, editado_por = $11 WHERE id = $12 RETURNING updated_at`
 
 	return r.db.QueryRow(
 		query,
@@ -145,6 +165,7 @@ func (r *RegistroRepositoryImpl) Update(registro *entities.Registro) error {
 		registro.FechaHora,
 		registro.MinutosRetraso,
 		registro.MinutosExtra,
+		registro.EsExcepcional,
 		registro.Observaciones,
 		registro.EditadoPor,
 		registro.ID,
@@ -171,6 +192,7 @@ func (r *RegistroRepositoryImpl) scanRegistros(rows *sql.Rows) ([]*entities.Regi
 			&registro.FechaHora,
 			&registro.MinutosRetraso,
 			&registro.MinutosExtra,
+			&registro.EsExcepcional,
 			&registro.Observaciones,
 			&registro.EditadoPor,
 			&registro.CreatedAt,

@@ -52,6 +52,7 @@ export const registroService = {
   registrarIngreso: (data) => api.post('/registros/ingreso', data),
   registrarSalida: (data) => api.post('/registros/salida', data),
   getByFecha: (fecha) => api.get(`/registros?fecha=${fecha}`),
+  getRegistrosHoy: () => api.get('/registros/hoy'),
 };
 
 export const turnoService = {

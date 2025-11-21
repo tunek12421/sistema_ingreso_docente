@@ -170,6 +170,7 @@ CREATE TABLE IF NOT EXISTS registros (
     fecha_hora TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP,
     minutos_retraso INTEGER DEFAULT 0 CHECK (minutos_retraso >= 0),
     minutos_extra INTEGER DEFAULT 0 CHECK (minutos_extra >= 0),
+    es_excepcional BOOLEAN DEFAULT FALSE,
     observaciones TEXT,
     editado_por INTEGER REFERENCES usuarios(id) ON DELETE SET NULL,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
@@ -191,6 +192,7 @@ CREATE INDEX idx_registros_tipo ON registros(tipo);
 CREATE INDEX idx_registros_fecha_docente ON registros(fecha_hora DESC, docente_id);
 CREATE INDEX idx_registros_ambiente_fecha ON registros(ambiente_id, fecha_hora DESC);
 CREATE INDEX idx_registros_editados ON registros(editado_por) WHERE editado_por IS NOT NULL;
+CREATE INDEX idx_registros_excepcionales ON registros(es_excepcional) WHERE es_excepcional = TRUE;
 
 -- ============================================
 -- DATOS INICIALES DE PRUEBA

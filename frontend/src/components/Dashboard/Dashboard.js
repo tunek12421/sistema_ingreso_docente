@@ -3,7 +3,9 @@ import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import Sidebar from './Sidebar';
 import DocentesList from '../Docentes/DocentesList';
-import RegistroIngreso from '../Registro/RegistroIngreso';
+import RegistroIngresoTailwind from '../Registro/RegistroIngresoTailwind';
+import RegistrosHoy from '../Registro/RegistrosHoy';
+import MisRegistros from '../Registro/MisRegistros';
 import TurnosList from '../Turnos/TurnosList';
 import AmbientesList from '../Ambientes/AmbientesList';
 import LlavesList from '../Llaves/LlavesList';
@@ -44,13 +46,13 @@ const Dashboard = () => {
 
       // Bibliotecario
       case 'registro':
-        return <RegistroIngreso />;
+        return <RegistroIngresoTailwind />;
       case 'registros-hoy':
-        return <div className="placeholder"><h3>Registros de Hoy</h3><p>En desarrollo...</p></div>;
+        return <RegistrosHoy />;
 
       // Docente
       case 'mis-registros':
-        return <div className="placeholder"><h3>Mis Registros</h3><p>En desarrollo...</p></div>;
+        return <MisRegistros />;
       case 'mi-horario':
         return <div className="placeholder"><h3>Mi Horario</h3><p>En desarrollo...</p></div>;
 

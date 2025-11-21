@@ -19,6 +19,7 @@ type Registro struct {
 	FechaHora       time.Time     `json:"fecha_hora"`
 	MinutosRetraso  int           `json:"minutos_retraso"`
 	MinutosExtra    int           `json:"minutos_extra"`
+	EsExcepcional   bool          `json:"es_excepcional"`
 	Observaciones   *string       `json:"observaciones,omitempty"`
 	EditadoPor      *int          `json:"editado_por,omitempty"`
 	CreatedAt       time.Time     `json:"created_at"`

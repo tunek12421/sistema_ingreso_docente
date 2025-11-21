@@ -33,7 +33,7 @@ func main() {
 	// Inicializar casos de uso
 	authUseCase := usecases.NewAuthUseCase(usuarioRepo)
 	docenteUseCase := usecases.NewDocenteUseCase(docenteRepo)
-	registroUseCase := usecases.NewRegistroUseCase(registroRepo, turnoRepo, llaveRepo)
+	registroUseCase := usecases.NewRegistroUseCase(registroRepo, turnoRepo, llaveRepo, asignacionRepo)
 	turnoUseCase := usecases.NewTurnoUseCase(turnoRepo)
 	ambienteUseCase := usecases.NewAmbienteUseCase(ambienteRepo)
 	llaveUseCase := usecases.NewLlaveUseCase(llaveRepo)
@@ -42,7 +42,7 @@ func main() {
 	// Inicializar handlers
 	authHandler := handlers.NewAuthHandler(authUseCase)
 	docenteHandler := handlers.NewDocenteHandler(docenteUseCase)
-	registroHandler := handlers.NewRegistroHandler(registroUseCase, docenteUseCase)
+	registroHandler := handlers.NewRegistroHandler(registroUseCase, docenteUseCase, turnoUseCase, asignacionUseCase, db)
 	turnoHandler := handlers.NewTurnoHandler(turnoUseCase)
 	ambienteHandler := handlers.NewAmbienteHandler(ambienteUseCase)
 	llaveHandler := handlers.NewLlaveHandler(llaveUseCase)
