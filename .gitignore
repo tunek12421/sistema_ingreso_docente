@@ -1,0 +1,199 @@
+# ============================================
+# Sistema de Ingreso Docente - .gitignore
+# ============================================
+
+# ============================================
+# Backend (Go)
+# ============================================
+# Binarios compilados
+*.exe
+*.exe~
+*.dll
+*.so
+*.dylib
+main
+backend/main
+backend/cmd/api/main
+
+# Test binaries
+*.test
+
+# Output del profiler de Go
+*.out
+
+# Dependencias de Go
+vendor/
+go.work
+
+# ============================================
+# Frontend (Node.js / React)
+# ============================================
+# Dependencias
+frontend/node_modules/
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Build de producción
+frontend/build/
+frontend/dist/
+build/
+dist/
+
+# Cache
+.npm
+.eslintcache
+.cache
+
+# Logs
+logs
+*.log
+
+# Testing
+coverage/
+.nyc_output
+
+# Variables de entorno locales
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+
+# ============================================
+# Base de Datos
+# ============================================
+# Datos de PostgreSQL (si se ejecuta localmente)
+database/data/
+postgres-data/
+*.sql.backup
+*.dump
+
+# Archivos temporales de migraciones
+*.sql~
+
+# ============================================
+# Docker
+# ============================================
+# No ignorar docker-compose.yml, pero si overrides locales
+docker-compose.override.yml
+docker-compose.local.yml
+
+# ============================================
+# IDEs y Editores
+# ============================================
+# VSCode
+.vscode/
+!.vscode/settings.json
+!.vscode/tasks.json
+!.vscode/launch.json
+!.vscode/extensions.json
+*.code-workspace
+
+# IntelliJ IDEA / GoLand / WebStorm
+.idea/
+*.iml
+*.iws
+*.ipr
+out/
+
+# Sublime Text
+*.sublime-project
+*.sublime-workspace
+
+# Vim
+*.swp
+*.swo
+*~
+.netrwhist
+
+# Emacs
+*~
+\#*\#
+.\#*
+
+# ============================================
+# Sistema Operativo
+# ============================================
+# macOS
+.DS_Store
+.AppleDouble
+.LSOverride
+._*
+
+# Windows
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+$RECYCLE.BIN/
+
+# Linux
+.directory
+.Trash-*
+
+# ============================================
+# Archivos temporales y de respaldo
+# ============================================
+*.tmp
+*.temp
+*.bak
+*.backup
+*.old
+*~
+
+# ============================================
+# Secretos y Configuración Sensible
+# ============================================
+# Variables de entorno con secretos
+.env
+.env.production
+*.key
+*.pem
+*.p12
+*.pfx
+
+# Configuraciones locales
+config.local.yml
+config.local.json
+secrets.yml
+secrets.json
+
+# Certificados SSL (si son locales)
+*.crt
+*.cer
+*.der
+
+# ============================================
+# Documentación generada
+# ============================================
+# Swagger / OpenAPI generado
+swagger.json
+swagger.yaml
+api-docs/
+
+# Documentación de godoc
+godoc/
+
+# ============================================
+# Otros
+# ============================================
+# Archivos de depuración
+debug
+debug.test
+__debug_bin
+
+# Archivos de profiling
+*.prof
+*.pprof
+
+# Air (live reload para Go)
+.air.toml
+tmp/
+
+# Thumbnails
+*.png.thumb
+*.jpg.thumb
+
+# Archivos de prueba temporales
+test-data/
+fixtures/temp/
