@@ -10,13 +10,11 @@ import (
 )
 
 type Handlers struct {
-	Auth       *handlers.AuthHandler
-	Docente    *handlers.DocenteHandler
-	Registro   *handlers.RegistroHandler
-	Turno      *handlers.TurnoHandler
-	Ambiente   *handlers.AmbienteHandler
-	Llave      *handlers.LlaveHandler
-	Asignacion *handlers.AsignacionHandler
+	Auth     *handlers.AuthHandler
+	Docente  *handlers.DocenteHandler
+	Registro *handlers.RegistroHandler
+	Turno    *handlers.TurnoHandler
+	Llave    *handlers.LlaveHandler
 }
 
 func Setup(r *mux.Router, h *Handlers) {
@@ -59,39 +57,16 @@ func Setup(r *mux.Router, h *Handlers) {
 	api.Handle("/turnos/{id}", middleware.RequireRole(entities.RolJefeCarrera)(http.HandlerFunc(h.Turno.Update))).Methods("PUT")
 	api.Handle("/turnos/{id}", middleware.RequireRole(entities.RolJefeCarrera)(http.HandlerFunc(h.Turno.Delete))).Methods("DELETE")
 
-	// ==================== AMBIENTES ====================
-	// Lectura - Bibliotecario y Jefe de Carrera
-	api.Handle("/ambientes", middleware.RequireRole(entities.RolBibliotecario, entities.RolJefeCarrera)(http.HandlerFunc(h.Ambiente.GetAll))).Methods("GET")
-	api.Handle("/ambientes/{id}", middleware.RequireRole(entities.RolBibliotecario, entities.RolJefeCarrera)(http.HandlerFunc(h.Ambiente.GetByID))).Methods("GET")
-	api.Handle("/ambientes/codigo/{codigo}", middleware.RequireRole(entities.RolBibliotecario, entities.RolJefeCarrera)(http.HandlerFunc(h.Ambiente.GetByCodigo))).Methods("GET")
-
-	// Escritura - Solo Jefe de Carrera
-	api.Handle("/ambientes", middleware.RequireRole(entities.RolJefeCarrera)(http.HandlerFunc(h.Ambiente.Create))).Methods("POST")
-	api.Handle("/ambientes/{id}", middleware.RequireRole(entities.RolJefeCarrera)(http.HandlerFunc(h.Ambiente.Update))).Methods("PUT")
-	api.Handle("/ambientes/{id}", middleware.RequireRole(entities.RolJefeCarrera)(http.HandlerFunc(h.Ambiente.Delete))).Methods("DELETE")
-
 	// ==================== LLAVES ====================
 	// Lectura - Bibliotecario y Jefe de Carrera
 	api.Handle("/llaves", middleware.RequireRole(entities.RolBibliotecario, entities.RolJefeCarrera)(http.HandlerFunc(h.Llave.GetAll))).Methods("GET")
 	api.Handle("/llaves/{id}", middleware.RequireRole(entities.RolBibliotecario, entities.RolJefeCarrera)(http.HandlerFunc(h.Llave.GetByID))).Methods("GET")
 	api.Handle("/llaves/codigo/{codigo}", middleware.RequireRole(entities.RolBibliotecario, entities.RolJefeCarrera)(http.HandlerFunc(h.Llave.GetByCodigo))).Methods("GET")
-	api.Handle("/llaves/ambiente/{ambiente_id}", middleware.RequireRole(entities.RolBibliotecario, entities.RolJefeCarrera)(http.HandlerFunc(h.Llave.GetByAmbiente))).Methods("GET")
+	api.Handle("/llaves/aula/{aula_codigo}", middleware.RequireRole(entities.RolBibliotecario, entities.RolJefeCarrera)(http.HandlerFunc(h.Llave.GetByAulaCodigo))).Methods("GET")
 
 	// Escritura - Solo Jefe de Carrera
 	api.Handle("/llaves", middleware.RequireRole(entities.RolJefeCarrera)(http.HandlerFunc(h.Llave.Create))).Methods("POST")
 	api.Handle("/llaves/{id}", middleware.RequireRole(entities.RolJefeCarrera)(http.HandlerFunc(h.Llave.Update))).Methods("PUT")
 	api.Handle("/llaves/{id}", middleware.RequireRole(entities.RolJefeCarrera)(http.HandlerFunc(h.Llave.Delete))).Methods("DELETE")
 	api.Handle("/llaves/{id}/estado", middleware.RequireRole(entities.RolJefeCarrera)(http.HandlerFunc(h.Llave.UpdateEstado))).Methods("PATCH")
-
-	// ==================== ASIGNACIONES ====================
-	// Lectura - Bibliotecario y Jefe de Carrera
-	api.Handle("/asignaciones", middleware.RequireRole(entities.RolBibliotecario, entities.RolJefeCarrera)(http.HandlerFunc(h.Asignacion.GetAll))).Methods("GET")
-	api.Handle("/asignaciones/{id}", middleware.RequireRole(entities.RolBibliotecario, entities.RolJefeCarrera)(http.HandlerFunc(h.Asignacion.GetByID))).Methods("GET")
-	api.Handle("/asignaciones/docente/{docente_id}", middleware.RequireRole(entities.RolBibliotecario, entities.RolJefeCarrera)(http.HandlerFunc(h.Asignacion.GetByDocente))).Methods("GET")
-	api.Handle("/asignaciones/docente/{docente_id}/fecha", middleware.RequireRole(entities.RolBibliotecario, entities.RolJefeCarrera)(http.HandlerFunc(h.Asignacion.GetByDocenteYFecha))).Methods("GET")
-
-	// Escritura - Solo Jefe de Carrera
-	api.Handle("/asignaciones", middleware.RequireRole(entities.RolJefeCarrera)(http.HandlerFunc(h.Asignacion.Create))).Methods("POST")
-	api.Handle("/asignaciones/{id}", middleware.RequireRole(entities.RolJefeCarrera)(http.HandlerFunc(h.Asignacion.Update))).Methods("PUT")
-	api.Handle("/asignaciones/{id}", middleware.RequireRole(entities.RolJefeCarrera)(http.HandlerFunc(h.Asignacion.Delete))).Methods("DELETE")
 }

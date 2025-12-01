@@ -27,35 +27,27 @@ func main() {
 	turnoRepo := database.NewTurnoRepository(db)
 	llaveRepo := database.NewLlaveRepository(db)
 	registroRepo := database.NewRegistroRepository(db)
-	ambienteRepo := database.NewAmbienteRepository(db)
-	asignacionRepo := database.NewAsignacionRepository(db)
 
 	// Inicializar casos de uso
 	authUseCase := usecases.NewAuthUseCase(usuarioRepo)
 	docenteUseCase := usecases.NewDocenteUseCase(docenteRepo)
-	registroUseCase := usecases.NewRegistroUseCase(registroRepo, turnoRepo, llaveRepo, asignacionRepo)
+	registroUseCase := usecases.NewRegistroUseCase(registroRepo, turnoRepo, llaveRepo)
 	turnoUseCase := usecases.NewTurnoUseCase(turnoRepo)
-	ambienteUseCase := usecases.NewAmbienteUseCase(ambienteRepo)
 	llaveUseCase := usecases.NewLlaveUseCase(llaveRepo)
-	asignacionUseCase := usecases.NewAsignacionUseCase(asignacionRepo)
 
 	// Inicializar handlers
 	authHandler := handlers.NewAuthHandler(authUseCase)
 	docenteHandler := handlers.NewDocenteHandler(docenteUseCase)
-	registroHandler := handlers.NewRegistroHandler(registroUseCase, docenteUseCase, turnoUseCase, asignacionUseCase, db)
+	registroHandler := handlers.NewRegistroHandler(registroUseCase, docenteUseCase, turnoUseCase, db)
 	turnoHandler := handlers.NewTurnoHandler(turnoUseCase)
-	ambienteHandler := handlers.NewAmbienteHandler(ambienteUseCase)
 	llaveHandler := handlers.NewLlaveHandler(llaveUseCase)
-	asignacionHandler := handlers.NewAsignacionHandler(asignacionUseCase)
 
 	handlersGroup := &routes.Handlers{
-		Auth:       authHandler,
-		Docente:    docenteHandler,
-		Registro:   registroHandler,
-		Turno:      turnoHandler,
-		Ambiente:   ambienteHandler,
-		Llave:      llaveHandler,
-		Asignacion: asignacionHandler,
+		Auth:     authHandler,
+		Docente:  docenteHandler,
+		Registro: registroHandler,
+		Turno:    turnoHandler,
+		Llave:    llaveHandler,
 	}
 
 	// Configurar router

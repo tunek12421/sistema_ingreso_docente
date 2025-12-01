@@ -1,11 +1,10 @@
 import React, { useState, useEffect } from 'react';
-import { registroService, docenteService, ambienteService, turnoService } from '../../services/api';
+import { registroService, docenteService, turnoService } from '../../services/api';
 import './Registro.css';
 
 const RegistrosHoy = () => {
   const [registros, setRegistros] = useState([]);
   const [docentes, setDocentes] = useState({});
-  const [ambientes, setAmbientes] = useState({});
   const [turnos, setTurnos] = useState({});
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -25,9 +24,8 @@ const RegistrosHoy = () => {
       setRegistros(registrosData);
 
       // Cargar docentes, ambientes y turnos para mostrar nombres
-      const [docentesRes, ambientesRes, turnosRes] = await Promise.all([
+      const [docentesRes, turnosRes] = await Promise.all([
         docenteService.getAll(),
-        ambienteService.getAll(),
         turnoService.getAll(),
       ]);
 
@@ -37,10 +35,6 @@ const RegistrosHoy = () => {
         docentesMap[d.id] = d;
       });
 
-      const ambientesMap = {};
-      (ambientesRes.data || []).forEach(a => {
-        ambientesMap[a.id] = a;
-      });
 
       const turnosMap = {};
       (turnosRes.data || []).forEach(t => {
@@ -48,7 +42,6 @@ const RegistrosHoy = () => {
       });
 
       setDocentes(docentesMap);
-      setAmbientes(ambientesMap);
       setTurnos(turnosMap);
 
     } catch (err) {
@@ -107,7 +100,7 @@ const RegistrosHoy = () => {
                 <th>Hora</th>
                 <th>Docente</th>
                 <th>CI</th>
-                <th>Ambiente</th>
+                <th>Aula</th>
                 <th>Turno</th>
                 <th>Tipo</th>
                 <th>Retraso</th>
@@ -118,7 +111,6 @@ const RegistrosHoy = () => {
             <tbody>
               {registros.map((registro) => {
                 const docente = docentes[registro.docente_id];
-                const ambiente = ambientes[registro.ambiente_id];
                 const turno = turnos[registro.turno_id];
 
                 return (
@@ -126,7 +118,7 @@ const RegistrosHoy = () => {
                     <td>{formatFechaHora(registro.fecha_hora)}</td>
                     <td>{docente?.nombre_completo || 'Desconocido'}</td>
                     <td>{docente?.documento_identidad || '-'}</td>
-                    <td>{ambiente?.nombre || `Amb ${registro.ambiente_id}`}</td>
+                    <td>{registro.aula_codigo || registro.aula_nombre || 'N/A'}</td>
                     <td>{turno?.nombre || `Turno ${registro.turno_id}`}</td>
                     <td>
                       <span className={getTipoBadge(registro.tipo)}>

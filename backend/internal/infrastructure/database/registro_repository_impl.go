@@ -17,7 +17,7 @@ func NewRegistroRepository(db *sql.DB) *RegistroRepositoryImpl {
 }
 
 func (r *RegistroRepositoryImpl) FindByID(id int) (*entities.Registro, error) {
-	query := `SELECT id, docente_id, ambiente_id, turno_id, llave_id, tipo, fecha_hora,
+	query := `SELECT id, docente_id, turno_id, llave_id, tipo, fecha_hora,
 	          minutos_retraso, minutos_extra, es_excepcional, observaciones, editado_por, created_at, updated_at
 	          FROM registros WHERE id = $1`
 
@@ -25,7 +25,6 @@ func (r *RegistroRepositoryImpl) FindByID(id int) (*entities.Registro, error) {
 	err := r.db.QueryRow(query, id).Scan(
 		&registro.ID,
 		&registro.DocenteID,
-		&registro.AmbienteID,
 		&registro.TurnoID,
 		&registro.LlaveID,
 		&registro.Tipo,
@@ -50,7 +49,7 @@ func (r *RegistroRepositoryImpl) FindByID(id int) (*entities.Registro, error) {
 }
 
 func (r *RegistroRepositoryImpl) FindAll() ([]*entities.Registro, error) {
-	query := `SELECT id, docente_id, ambiente_id, turno_id, llave_id, tipo, fecha_hora,
+	query := `SELECT id, docente_id, turno_id, llave_id, tipo, fecha_hora,
 	          minutos_retraso, minutos_extra, es_excepcional, observaciones, editado_por, created_at, updated_at
 	          FROM registros ORDER BY fecha_hora DESC LIMIT 100`
 
@@ -64,7 +63,7 @@ func (r *RegistroRepositoryImpl) FindAll() ([]*entities.Registro, error) {
 }
 
 func (r *RegistroRepositoryImpl) FindByDocente(docenteID int) ([]*entities.Registro, error) {
-	query := `SELECT id, docente_id, ambiente_id, turno_id, llave_id, tipo, fecha_hora,
+	query := `SELECT id, docente_id, turno_id, llave_id, tipo, fecha_hora,
 	          minutos_retraso, minutos_extra, es_excepcional, observaciones, editado_por, created_at, updated_at
 	          FROM registros WHERE docente_id = $1 ORDER BY fecha_hora DESC`
 
@@ -81,7 +80,7 @@ func (r *RegistroRepositoryImpl) FindByFecha(fecha time.Time) ([]*entities.Regis
 	inicio := time.Date(fecha.Year(), fecha.Month(), fecha.Day(), 0, 0, 0, 0, fecha.Location())
 	fin := inicio.Add(24 * time.Hour)
 
-	query := `SELECT id, docente_id, ambiente_id, turno_id, llave_id, tipo, fecha_hora,
+	query := `SELECT id, docente_id, turno_id, llave_id, tipo, fecha_hora,
 	          minutos_retraso, minutos_extra, es_excepcional, observaciones, editado_por, created_at, updated_at
 	          FROM registros WHERE fecha_hora >= $1 AND fecha_hora < $2 ORDER BY fecha_hora DESC`
 
@@ -98,7 +97,7 @@ func (r *RegistroRepositoryImpl) FindByDocenteYFecha(docenteID int, fecha time.T
 	inicio := time.Date(fecha.Year(), fecha.Month(), fecha.Day(), 0, 0, 0, 0, fecha.Location())
 	fin := inicio.Add(24 * time.Hour)
 
-	query := `SELECT id, docente_id, ambiente_id, turno_id, llave_id, tipo, fecha_hora,
+	query := `SELECT id, docente_id, turno_id, llave_id, tipo, fecha_hora,
 	          minutos_retraso, minutos_extra, es_excepcional, observaciones, editado_por, created_at, updated_at
 	          FROM registros WHERE docente_id = $1 AND fecha_hora >= $2 AND fecha_hora < $3 ORDER BY fecha_hora DESC`
 
@@ -116,7 +115,7 @@ func (r *RegistroRepositoryImpl) FindRegistrosHoy() ([]*entities.Registro, error
 	inicio := time.Date(ahora.Year(), ahora.Month(), ahora.Day(), 0, 0, 0, 0, ahora.Location())
 	fin := inicio.Add(24 * time.Hour)
 
-	query := `SELECT id, docente_id, ambiente_id, turno_id, llave_id, tipo, fecha_hora,
+	query := `SELECT id, docente_id, turno_id, llave_id, tipo, fecha_hora,
 	          minutos_retraso, minutos_extra, es_excepcional, observaciones, editado_por, created_at, updated_at
 	          FROM registros WHERE fecha_hora >= $1 AND fecha_hora < $2 ORDER BY fecha_hora DESC`
 
@@ -132,7 +131,7 @@ func (r *RegistroRepositoryImpl) FindRegistrosHoy() ([]*entities.Registro, error
 func (r *RegistroRepositoryImpl) FindUltimoIngresoConLlave(docenteID int) (*entities.Registro, error) {
 	// Buscar el último ingreso con llave que NO tenga una salida posterior
 	query := `
-		SELECT ing.id, ing.docente_id, ing.ambiente_id, ing.turno_id, ing.llave_id,
+		SELECT ing.id, ing.docente_id, ing.turno_id, ing.llave_id,
 		       ing.tipo, ing.fecha_hora, ing.minutos_retraso, ing.minutos_extra,
 		       ing.es_excepcional, ing.observaciones, ing.editado_por, ing.created_at, ing.updated_at
 		FROM registros ing
@@ -155,7 +154,6 @@ func (r *RegistroRepositoryImpl) FindUltimoIngresoConLlave(docenteID int) (*enti
 	err := r.db.QueryRow(query, docenteID).Scan(
 		&registro.ID,
 		&registro.DocenteID,
-		&registro.AmbienteID,
 		&registro.TurnoID,
 		&registro.LlaveID,
 		&registro.Tipo,
@@ -180,14 +178,13 @@ func (r *RegistroRepositoryImpl) FindUltimoIngresoConLlave(docenteID int) (*enti
 }
 
 func (r *RegistroRepositoryImpl) Create(registro *entities.Registro) error {
-	query := `INSERT INTO registros (docente_id, ambiente_id, turno_id, llave_id, tipo, fecha_hora,
+	query := `INSERT INTO registros (docente_id, turno_id, llave_id, tipo, fecha_hora,
 	          minutos_retraso, minutos_extra, es_excepcional, observaciones, editado_por)
-	          VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11) RETURNING id, created_at, updated_at`
+	          VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10) RETURNING id, created_at, updated_at`
 
 	return r.db.QueryRow(
 		query,
 		registro.DocenteID,
-		registro.AmbienteID,
 		registro.TurnoID,
 		registro.LlaveID,
 		registro.Tipo,
@@ -201,14 +198,13 @@ func (r *RegistroRepositoryImpl) Create(registro *entities.Registro) error {
 }
 
 func (r *RegistroRepositoryImpl) Update(registro *entities.Registro) error {
-	query := `UPDATE registros SET docente_id = $1, ambiente_id = $2, turno_id = $3,
-	          llave_id = $4, tipo = $5, fecha_hora = $6, minutos_retraso = $7, minutos_extra = $8,
-	          es_excepcional = $9, observaciones = $10, editado_por = $11 WHERE id = $12 RETURNING updated_at`
+	query := `UPDATE registros SET docente_id = $1, turno_id = $2,
+	          llave_id = $3, tipo = $4, fecha_hora = $5, minutos_retraso = $6, minutos_extra = $7,
+	          es_excepcional = $8, observaciones = $9, editado_por = $10 WHERE id = $11 RETURNING updated_at`
 
 	return r.db.QueryRow(
 		query,
 		registro.DocenteID,
-		registro.AmbienteID,
 		registro.TurnoID,
 		registro.LlaveID,
 		registro.Tipo,
@@ -235,7 +231,6 @@ func (r *RegistroRepositoryImpl) scanRegistros(rows *sql.Rows) ([]*entities.Regi
 		err := rows.Scan(
 			&registro.ID,
 			&registro.DocenteID,
-			&registro.AmbienteID,
 			&registro.TurnoID,
 			&registro.LlaveID,
 			&registro.Tipo,

@@ -27,20 +27,22 @@ func (uc *LlaveUseCase) GetByCodigo(codigo string) (*entities.Llave, error) {
 	return uc.llaveRepo.FindByCodigo(codigo)
 }
 
-func (uc *LlaveUseCase) GetByAmbiente(ambienteID int) ([]*entities.Llave, error) {
-	return uc.llaveRepo.FindByAmbiente(ambienteID)
+func (uc *LlaveUseCase) GetByAulaCodigo(aulaCodigo string) ([]*entities.Llave, error) {
+	return uc.llaveRepo.FindByAulaCodigo(aulaCodigo)
 }
 
 func (uc *LlaveUseCase) Create(llave *entities.Llave) error {
 	if llave.Codigo == "" {
 		return fmt.Errorf("código requerido")
 	}
-	if llave.AmbienteID <= 0 {
-		return fmt.Errorf("ambiente requerido")
+	if llave.AulaCodigo == "" {
+		return fmt.Errorf("código de aula requerido")
+	}
+	if llave.AulaNombre == "" {
+		return fmt.Errorf("nombre de aula requerido")
 	}
 
 	llave.Estado = entities.EstadoDisponible
-	llave.Activo = true
 	return uc.llaveRepo.Create(llave)
 }
 

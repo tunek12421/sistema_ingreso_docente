@@ -1,5 +1,6 @@
 -- ============================================
--- SISTEMA DE INGRESO - BASE DE DATOS COMPLETA
+-- SISTEMA DE INGRESO - BASE DE DATOS SIMPLIFICADA
+-- Solo maneja: Usuarios, Docentes, Turnos, Llaves, Asignaciones, Registros
 -- ============================================
 SET client_encoding = 'UTF8';
 
@@ -81,40 +82,15 @@ CREATE TRIGGER update_turnos_modtime
 CREATE INDEX idx_turnos_activo ON turnos(activo) WHERE activo = TRUE;
 
 -- ============================================
--- Tabla: ambientes_academicos
--- ============================================
-CREATE TABLE IF NOT EXISTS ambientes_academicos (
-    id SERIAL PRIMARY KEY,
-    codigo VARCHAR(50) UNIQUE NOT NULL,
-    descripcion VARCHAR(255),
-    tipo_ambiente VARCHAR(50),
-    capacidad INTEGER CHECK (capacidad > 0),
-    piso INTEGER,
-    edificio VARCHAR(50),
-    activo BOOLEAN DEFAULT TRUE,
-    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
-);
-
-CREATE TRIGGER update_ambientes_modtime
-    BEFORE UPDATE ON ambientes_academicos
-    FOR EACH ROW
-    EXECUTE PROCEDURE update_updated_at_column();
-
-CREATE INDEX idx_ambientes_tipo ON ambientes_academicos(tipo_ambiente);
-CREATE INDEX idx_ambientes_activo ON ambientes_academicos(activo) WHERE activo = TRUE;
-CREATE INDEX idx_ambientes_edificio ON ambientes_academicos(edificio);
-
--- ============================================
--- Tabla: llaves (asignadas a aulas)
+-- Tabla: llaves (incluye información del aula)
 -- ============================================
 CREATE TABLE IF NOT EXISTS llaves (
     id SERIAL PRIMARY KEY,
     codigo VARCHAR(50) UNIQUE NOT NULL,
-    ambiente_id INTEGER NOT NULL REFERENCES ambientes_academicos(id) ON DELETE RESTRICT,
+    aula_codigo VARCHAR(50) NOT NULL,
+    aula_nombre VARCHAR(255) NOT NULL,
     estado VARCHAR(20) DEFAULT 'disponible' CHECK (estado IN ('disponible', 'en_uso', 'extraviada', 'inactiva')),
     descripcion TEXT,
-    activo BOOLEAN DEFAULT TRUE,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
 );
@@ -124,38 +100,9 @@ CREATE TRIGGER update_llaves_modtime
     FOR EACH ROW
     EXECUTE PROCEDURE update_updated_at_column();
 
-CREATE INDEX idx_llaves_ambiente ON llaves(ambiente_id);
 CREATE INDEX idx_llaves_estado ON llaves(estado);
-CREATE INDEX idx_llaves_activo ON llaves(activo) WHERE activo = TRUE;
-
--- ============================================
--- Tabla: asignaciones_docente
--- ============================================
-CREATE TABLE IF NOT EXISTS asignaciones_docente (
-    id SERIAL PRIMARY KEY,
-    docente_id INTEGER NOT NULL REFERENCES docentes(id) ON DELETE CASCADE,
-    turno_id INTEGER NOT NULL REFERENCES turnos(id) ON DELETE RESTRICT,
-    ambiente_id INTEGER NOT NULL REFERENCES ambientes_academicos(id) ON DELETE RESTRICT,
-    llave_id INTEGER REFERENCES llaves(id) ON DELETE SET NULL,
-    fecha_inicio DATE NOT NULL,
-    fecha_fin DATE,
-    activo BOOLEAN DEFAULT TRUE,
-    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
-    CONSTRAINT uk_asignacion_unica UNIQUE (docente_id, turno_id, ambiente_id, fecha_inicio)
-);
-
-CREATE TRIGGER update_asignaciones_modtime
-    BEFORE UPDATE ON asignaciones_docente
-    FOR EACH ROW
-    EXECUTE PROCEDURE update_updated_at_column();
-
-CREATE INDEX idx_asignaciones_docente ON asignaciones_docente(docente_id);
-CREATE INDEX idx_asignaciones_turno ON asignaciones_docente(turno_id);
-CREATE INDEX idx_asignaciones_ambiente ON asignaciones_docente(ambiente_id);
-CREATE INDEX idx_asignaciones_llave ON asignaciones_docente(llave_id);
-CREATE INDEX idx_asignaciones_fecha ON asignaciones_docente(fecha_inicio, fecha_fin);
-CREATE INDEX idx_asignaciones_activo ON asignaciones_docente(activo) WHERE activo = TRUE;
+CREATE INDEX idx_llaves_aula_codigo ON llaves(aula_codigo);
+CREATE INDEX idx_llaves_aula_nombre ON llaves USING gin(to_tsvector('spanish', aula_nombre));
 
 -- ============================================
 -- Tabla: registros
@@ -163,7 +110,6 @@ CREATE INDEX idx_asignaciones_activo ON asignaciones_docente(activo) WHERE activ
 CREATE TABLE IF NOT EXISTS registros (
     id SERIAL PRIMARY KEY,
     docente_id INTEGER NOT NULL REFERENCES docentes(id) ON DELETE RESTRICT,
-    ambiente_id INTEGER NOT NULL REFERENCES ambientes_academicos(id) ON DELETE RESTRICT,
     turno_id INTEGER NOT NULL REFERENCES turnos(id) ON DELETE RESTRICT,
     llave_id INTEGER REFERENCES llaves(id) ON DELETE SET NULL,
     tipo VARCHAR(10) NOT NULL CHECK (tipo IN ('ingreso', 'salida')),
@@ -184,13 +130,11 @@ CREATE TRIGGER update_registros_modtime
     EXECUTE PROCEDURE update_updated_at_column();
 
 CREATE INDEX idx_registros_docente ON registros(docente_id);
-CREATE INDEX idx_registros_ambiente ON registros(ambiente_id);
 CREATE INDEX idx_registros_turno ON registros(turno_id);
 CREATE INDEX idx_registros_llave ON registros(llave_id);
 CREATE INDEX idx_registros_fecha ON registros(fecha_hora DESC);
 CREATE INDEX idx_registros_tipo ON registros(tipo);
 CREATE INDEX idx_registros_fecha_docente ON registros(fecha_hora DESC, docente_id);
-CREATE INDEX idx_registros_ambiente_fecha ON registros(ambiente_id, fecha_hora DESC);
 CREATE INDEX idx_registros_editados ON registros(editado_por) WHERE editado_por IS NOT NULL;
 CREATE INDEX idx_registros_excepcionales ON registros(es_excepcional) WHERE es_excepcional = TRUE;
 
@@ -206,12 +150,12 @@ INSERT INTO turnos (nombre, hora_inicio, hora_fin, descripcion) VALUES
 ('Noche', '19:00:00', '22:00:00', 'Turno nocturno 19:00 - 22:00')
 ON CONFLICT (nombre) DO NOTHING;
 
--- Usuarios de prueba (password para todos: password123)
--- Hash bcrypt de "password123": $2b$10$iOFYa3PvpQ9Vy280vvowMOaeZ4s9UqFa2W.2UWLqtrf6GtgZiUYtq
+-- Usuarios de prueba (password para todos: admin123)
+-- Hash bcrypt de "admin123": $2a$10$C3aeDMEplzVnp40izb2E8uAwOp5ZwANcLMutamZg1FTibPZOrdEdu
 INSERT INTO usuarios (username, password, rol) VALUES
-('admin', '$2b$10$iOFYa3PvpQ9Vy280vvowMOaeZ4s9UqFa2W.2UWLqtrf6GtgZiUYtq', 'jefe_carrera'),
-('bibliotecario', '$2b$10$iOFYa3PvpQ9Vy280vvowMOaeZ4s9UqFa2W.2UWLqtrf6GtgZiUYtq', 'bibliotecario'),
-('docente1', '$2b$10$iOFYa3PvpQ9Vy280vvowMOaeZ4s9UqFa2W.2UWLqtrf6GtgZiUYtq', 'docente')
+('admin', '$2a$10$C3aeDMEplzVnp40izb2E8uAwOp5ZwANcLMutamZg1FTibPZOrdEdu', 'jefe_carrera'),
+('bibliotecario', '$2a$10$C3aeDMEplzVnp40izb2E8uAwOp5ZwANcLMutamZg1FTibPZOrdEdu', 'bibliotecario'),
+('docente1', '$2a$10$C3aeDMEplzVnp40izb2E8uAwOp5ZwANcLMutamZg1FTibPZOrdEdu', 'docente')
 ON CONFLICT (username) DO NOTHING;
 
 -- Docente de prueba
@@ -219,37 +163,16 @@ INSERT INTO docentes (usuario_id, documento_identidad, nombre_completo, correo, 
 ((SELECT id FROM usuarios WHERE username = 'docente1'), 12345678, 'Juan Pérez García', 'juan.perez@universidad.edu', 71234567)
 ON CONFLICT (documento_identidad) DO NOTHING;
 
--- Ambientes de ejemplo
-INSERT INTO ambientes_academicos (codigo, descripcion, tipo_ambiente, capacidad, piso, edificio) VALUES
-('B-16', 'Aula Bloque B-16', 'Aula', 30, 1, 'Bloque B'),
-('L-01', 'Laboratorio de Computación 01', 'Laboratorio', 25, 2, 'Edificio Principal'),
-('L-02', 'Laboratorio de Computación 02', 'Laboratorio', 25, 2, 'Edificio Principal'),
-('P-06', 'Aula Pabellón 06', 'Aula', 40, 0, 'Pabellón P'),
-('204', 'Aula 204', 'Aula', 35, 2, 'Edificio Principal'),
-('205', 'Aula 205', 'Aula', 35, 2, 'Edificio Principal')
+-- Llaves con información de aula integrada
+INSERT INTO llaves (codigo, aula_codigo, aula_nombre, estado, descripcion) VALUES
+('L-B16', 'B-16', 'Aula Bloque B-16', 'disponible', 'Llave principal Bloque B-16'),
+('L-L01', 'L-01', 'Laboratorio de Computación 01', 'disponible', 'Llave Laboratorio 01'),
+('L-L02', 'L-02', 'Laboratorio de Computación 02', 'disponible', 'Llave Laboratorio 02'),
+('L-P06', 'P-06', 'Aula Pabellón 06', 'disponible', 'Llave Pabellón 06'),
+('L-204', '204', 'Aula 204', 'disponible', 'Llave Aula 204'),
+('L-205', '205', 'Aula 205', 'disponible', 'Llave Aula 205')
 ON CONFLICT (codigo) DO NOTHING;
 
--- Llaves para los ambientes
-INSERT INTO llaves (codigo, ambiente_id, estado, descripcion) VALUES
-('L-B16', (SELECT id FROM ambientes_academicos WHERE codigo = 'B-16'), 'disponible', 'Llave principal Bloque B-16'),
-('L-L01', (SELECT id FROM ambientes_academicos WHERE codigo = 'L-01'), 'disponible', 'Llave Laboratorio 01'),
-('L-L02', (SELECT id FROM ambientes_academicos WHERE codigo = 'L-02'), 'disponible', 'Llave Laboratorio 02'),
-('L-P06', (SELECT id FROM ambientes_academicos WHERE codigo = 'P-06'), 'disponible', 'Llave Pabellón 06'),
-('L-204', (SELECT id FROM ambientes_academicos WHERE codigo = '204'), 'disponible', 'Llave Aula 204'),
-('L-205', (SELECT id FROM ambientes_academicos WHERE codigo = '205'), 'disponible', 'Llave Aula 205')
-ON CONFLICT (codigo) DO NOTHING;
-
--- Asignación de ejemplo (docente Juan Pérez en turno Mañana, aula B-16)
-INSERT INTO asignaciones_docente (docente_id, turno_id, ambiente_id, llave_id, fecha_inicio, fecha_fin) VALUES
-(
-    (SELECT id FROM docentes WHERE documento_identidad = 12345678),
-    (SELECT id FROM turnos WHERE nombre = 'Mañana'),
-    (SELECT id FROM ambientes_academicos WHERE codigo = 'B-16'),
-    (SELECT id FROM llaves WHERE codigo = 'L-B16'),
-    CURRENT_DATE,
-    CURRENT_DATE + INTERVAL '6 months'
-)
-ON CONFLICT (docente_id, turno_id, ambiente_id, fecha_inicio) DO NOTHING;
 
 -- ============================================
 -- VISTAS
@@ -262,8 +185,8 @@ SELECT
     d.documento_identidad,
     d.nombre_completo AS docente,
     d.correo,
-    a.codigo AS ambiente_codigo,
-    a.descripcion AS ambiente_descripcion,
+    l.aula_codigo,
+    l.aula_nombre,
     t.nombre AS turno_nombre,
     l.codigo AS llave_codigo,
     r.minutos_retraso,
@@ -271,7 +194,6 @@ SELECT
     r.observaciones
 FROM registros r
 INNER JOIN docentes d ON r.docente_id = d.id
-INNER JOIN ambientes_academicos a ON r.ambiente_id = a.id
 INNER JOIN turnos t ON r.turno_id = t.id
 LEFT JOIN llaves l ON r.llave_id = l.id
 ORDER BY r.fecha_hora DESC;

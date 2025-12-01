@@ -64,34 +64,15 @@ export const turnoService = {
   delete: (id) => api.delete(`/turnos/${id}`),
 };
 
-export const ambienteService = {
-  getAll: () => api.get('/ambientes'),
-  getById: (id) => api.get(`/ambientes/${id}`),
-  getByCodigo: (codigo) => api.get(`/ambientes/codigo/${codigo}`),
-  create: (ambiente) => api.post('/ambientes', ambiente),
-  update: (id, ambiente) => api.put(`/ambientes/${id}`, ambiente),
-  delete: (id) => api.delete(`/ambientes/${id}`),
-};
-
 export const llaveService = {
   getAll: () => api.get('/llaves'),
   getById: (id) => api.get(`/llaves/${id}`),
   getByCodigo: (codigo) => api.get(`/llaves/codigo/${codigo}`),
-  getByAmbiente: (ambienteId) => api.get(`/llaves/ambiente/${ambienteId}`),
+  getByAulaCodigo: (aulaCodigo) => api.get(`/llaves/aula/${aulaCodigo}`),
   create: (llave) => api.post('/llaves', llave),
   update: (id, llave) => api.put(`/llaves/${id}`, llave),
   updateEstado: (id, estado) => api.patch(`/llaves/${id}/estado`, { estado }),
   delete: (id) => api.delete(`/llaves/${id}`),
-};
-
-export const asignacionService = {
-  getAll: () => api.get('/asignaciones'),
-  getById: (id) => api.get(`/asignaciones/${id}`),
-  getByDocente: (docenteId) => api.get(`/asignaciones/docente/${docenteId}`),
-  getByDocenteYFecha: (docenteId, fecha) => api.get(`/asignaciones/docente/${docenteId}/fecha?fecha=${fecha}`),
-  create: (asignacion) => api.post('/asignaciones', asignacion),
-  update: (id, asignacion) => api.put(`/asignaciones/${id}`, asignacion),
-  delete: (id) => api.delete(`/asignaciones/${id}`),
 };
 
 export default api;

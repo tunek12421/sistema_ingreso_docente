@@ -1,11 +1,10 @@
 import React, { useState, useEffect } from 'react';
-import { llaveService, ambienteService } from '../../services/api';
+import { llaveService } from '../../services/api';
 import LlaveForm from './LlaveForm';
 import './Llaves.css';
 
 const LlavesList = () => {
   const [llaves, setLlaves] = useState([]);
-  const [ambientes, setAmbientes] = useState([]);
   const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
   const [editingLlave, setEditingLlave] = useState(null);
@@ -16,12 +15,8 @@ const LlavesList = () => {
 
   const fetchData = async () => {
     try {
-      const [llavesRes, ambientesRes] = await Promise.all([
-        llaveService.getAll(),
-        ambienteService.getAll()
-      ]);
+      const llavesRes = await llaveService.getAll();
       setLlaves(llavesRes.data || []);
-      setAmbientes(ambientesRes.data || []);
     } catch (error) {
       console.error('Error cargando datos:', error);
       alert('Error cargando datos');
@@ -30,10 +25,6 @@ const LlavesList = () => {
     }
   };
 
-  const getAmbienteNombre = (ambienteId) => {
-    const ambiente = ambientes.find(a => a.id === ambienteId);
-    return ambiente ? `${ambiente.codigo} - ${ambiente.nombre}` : 'N/A';
-  };
 
   const getEstadoBadgeClass = (estado) => {
     switch (estado) {
@@ -114,7 +105,7 @@ const LlavesList = () => {
           <thead>
             <tr>
               <th>Codigo</th>
-              <th>Ambiente</th>
+              <th>Aula</th>
               <th>Estado</th>
               <th>Descripcion</th>
               <th>Activo</th>
@@ -132,7 +123,7 @@ const LlavesList = () => {
               llaves.map((llave) => (
                 <tr key={llave.id}>
                   <td>{llave.codigo}</td>
-                  <td>{getAmbienteNombre(llave.ambiente_id)}</td>
+                  <td>{llave.aula_codigo ? `${llave.aula_codigo} - ${llave.aula_nombre || ''}` : 'N/A'}</td>
                   <td>
                     <span className={`badge ${getEstadoBadgeClass(llave.estado)}`}>
                       {getEstadoLabel(llave.estado)}
@@ -168,7 +159,6 @@ const LlavesList = () => {
       {showForm && (
         <LlaveForm
           llave={editingLlave}
-          ambientes={ambientes}
           onClose={handleCloseForm}
           onSave={handleSaveSuccess}
         />

@@ -1,12 +1,11 @@
 import React, { useState, useEffect } from 'react';
-import { registroService, docenteService, asignacionService, ambienteService, turnoService } from '../../services/api';
+import { registroService, docenteService, turnoService } from '../../services/api';
 import './Registro.css';
 
 const RegistroIngreso = () => {
   const [ci, setCI] = useState('');
   const [docente, setDocente] = useState(null);
   const [asignaciones, setAsignaciones] = useState([]);
-  const [ambientes, setAmbientes] = useState([]);
   const [turnos, setTurnos] = useState([]);
 
   const [selectedAmbiente, setSelectedAmbiente] = useState('');
@@ -24,11 +23,8 @@ const RegistroIngreso = () => {
 
   const loadCatalogos = async () => {
     try {
-      const [ambientesRes, turnosRes] = await Promise.all([
-        ambienteService.getAll(),
         turnoService.getAll(),
       ]);
-      setAmbientes(ambientesRes.data || []);
       setTurnos(turnosRes.data || []);
     } catch (error) {
       console.error('Error cargando catálogos:', error);
@@ -62,7 +58,6 @@ const RegistroIngreso = () => {
 
       // Buscar asignaciones del docente
       try {
-        const asignacionesRes = await asignacionService.getByDocenteYFecha(
           docenteData.id,
           new Date().toISOString().split('T')[0]
         );

@@ -1,13 +1,12 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../../context/AuthContext';
-import { registroService, docenteService, ambienteService, turnoService } from '../../services/api';
+import { registroService, docenteService, turnoService } from '../../services/api';
 import './Registro.css';
 
 const MisRegistros = () => {
   const { user } = useAuth();
   const [registros, setRegistros] = useState([]);
   const [docenteInfo, setDocenteInfo] = useState(null);
-  const [ambientes, setAmbientes] = useState({});
   const [turnos, setTurnos] = useState({});
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -46,23 +45,14 @@ const MisRegistros = () => {
       );
       setRegistros(misRegistrosData);
 
-      // Cargar ambientes y turnos para mostrar nombres
-      const [ambientesRes, turnosRes] = await Promise.all([
-        ambienteService.getAll(),
-        turnoService.getAll(),
-      ]);
-
-      const ambientesMap = {};
-      (ambientesRes.data || []).forEach(a => {
-        ambientesMap[a.id] = a;
-      });
+      // Cargar turnos para mostrar nombres
+      const turnosRes = await turnoService.getAll();
 
       const turnosMap = {};
       (turnosRes.data || []).forEach(t => {
         turnosMap[t.id] = t;
       });
 
-      setAmbientes(ambientesMap);
       setTurnos(turnosMap);
 
     } catch (err) {
@@ -134,7 +124,7 @@ const MisRegistros = () => {
             <thead>
               <tr>
                 <th>Fecha y Hora</th>
-                <th>Ambiente</th>
+                <th>Aula</th>
                 <th>Turno</th>
                 <th>Tipo</th>
                 <th>Retraso</th>
@@ -145,13 +135,12 @@ const MisRegistros = () => {
             </thead>
             <tbody>
               {registros.map((registro) => {
-                const ambiente = ambientes[registro.ambiente_id];
                 const turno = turnos[registro.turno_id];
 
                 return (
                   <tr key={registro.id}>
                     <td>{formatFechaHora(registro.fecha_hora)}</td>
-                    <td>{ambiente?.nombre || `Amb ${registro.ambiente_id}`}</td>
+                    <td>{registro.aula_codigo || registro.aula_nombre || 'N/A'}</td>
                     <td>{turno?.nombre || `Turno ${registro.turno_id}`}</td>
                     <td>
                       <span className={getTipoBadge(registro.tipo)}>

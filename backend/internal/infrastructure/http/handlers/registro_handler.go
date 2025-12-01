@@ -12,26 +12,23 @@ import (
 )
 
 type RegistroHandler struct {
-	registroUseCase   *usecases.RegistroUseCase
-	docenteUseCase    *usecases.DocenteUseCase
-	turnoUseCase      *usecases.TurnoUseCase
-	asignacionUseCase *usecases.AsignacionUseCase
-	db                *sql.DB
+	registroUseCase *usecases.RegistroUseCase
+	docenteUseCase  *usecases.DocenteUseCase
+	turnoUseCase    *usecases.TurnoUseCase
+	db              *sql.DB
 }
 
 func NewRegistroHandler(
 	registroUseCase *usecases.RegistroUseCase,
 	docenteUseCase *usecases.DocenteUseCase,
 	turnoUseCase *usecases.TurnoUseCase,
-	asignacionUseCase *usecases.AsignacionUseCase,
 	db *sql.DB,
 ) *RegistroHandler {
 	return &RegistroHandler{
-		registroUseCase:   registroUseCase,
-		docenteUseCase:    docenteUseCase,
-		turnoUseCase:      turnoUseCase,
-		asignacionUseCase: asignacionUseCase,
-		db:                db,
+		registroUseCase: registroUseCase,
+		docenteUseCase:  docenteUseCase,
+		turnoUseCase:    turnoUseCase,
+		db:              db,
 	}
 }
 
@@ -49,47 +46,13 @@ func (h *RegistroHandler) RegistrarIngreso(w http.ResponseWriter, r *http.Reques
 		return
 	}
 
-	// Intentar obtener datos automáticamente de asignaciones
-	var ambienteID, turnoID int
-	var llaveID *int = req.LlaveID
-
-	// Buscar asignaciones activas del docente para hoy
-	asignaciones, err := h.asignacionUseCase.GetByDocenteYFecha(docente.ID, time.Now())
-	if err == nil && len(asignaciones) > 0 {
-		// Si se proporcionó ambiente_id, buscar la asignación que coincida
-		if req.AmbienteID != nil {
-			for _, asig := range asignaciones {
-				if asig.AmbienteID == *req.AmbienteID {
-					ambienteID = asig.AmbienteID
-					turnoID = asig.TurnoID
-					if llaveID == nil && asig.LlaveID != nil {
-						llaveID = asig.LlaveID
-					}
-					break
-				}
-			}
-		} else {
-			// Si no se especificó ambiente, usar la primera asignación
-			asig := asignaciones[0]
-			ambienteID = asig.AmbienteID
-			turnoID = asig.TurnoID
-			if llaveID == nil && asig.LlaveID != nil {
-				llaveID = asig.LlaveID
-			}
-		}
+	// Validar que se proporcione turno_id
+	if req.TurnoID == nil {
+		http.Error(w, `{"error":"Debe especificar turno_id"}`, http.StatusBadRequest)
+		return
 	}
 
-	// Si no se encontró asignación, requerir datos manuales
-	if ambienteID == 0 {
-		if req.AmbienteID == nil || req.TurnoID == nil {
-			http.Error(w, `{"error":"El docente no tiene asignaciones. Debe especificar ambiente_id y turno_id manualmente"}`, http.StatusBadRequest)
-			return
-		}
-		ambienteID = *req.AmbienteID
-		turnoID = *req.TurnoID
-	}
-
-	registro, err := h.registroUseCase.RegistrarIngreso(docente.ID, ambienteID, turnoID, llaveID, req.Observaciones)
+	registro, err := h.registroUseCase.RegistrarIngreso(docente.ID, *req.TurnoID, req.LlaveID, req.Observaciones)
 	if err != nil {
 		http.Error(w, fmt.Sprintf(`{"error":"%s"}`, err.Error()), http.StatusBadRequest)
 		return
@@ -113,47 +76,13 @@ func (h *RegistroHandler) RegistrarSalida(w http.ResponseWriter, r *http.Request
 		return
 	}
 
-	// Intentar obtener datos automáticamente de asignaciones
-	var ambienteID, turnoID int
-	var llaveID *int = req.LlaveID
-
-	// Buscar asignaciones activas del docente para hoy
-	asignaciones, err := h.asignacionUseCase.GetByDocenteYFecha(docente.ID, time.Now())
-	if err == nil && len(asignaciones) > 0 {
-		// Si se proporcionó ambiente_id, buscar la asignación que coincida
-		if req.AmbienteID != nil {
-			for _, asig := range asignaciones {
-				if asig.AmbienteID == *req.AmbienteID {
-					ambienteID = asig.AmbienteID
-					turnoID = asig.TurnoID
-					if llaveID == nil && asig.LlaveID != nil {
-						llaveID = asig.LlaveID
-					}
-					break
-				}
-			}
-		} else {
-			// Si no se especificó ambiente, usar la primera asignación
-			asig := asignaciones[0]
-			ambienteID = asig.AmbienteID
-			turnoID = asig.TurnoID
-			if llaveID == nil && asig.LlaveID != nil {
-				llaveID = asig.LlaveID
-			}
-		}
+	// Validar que se proporcione turno_id
+	if req.TurnoID == nil {
+		http.Error(w, `{"error":"Debe especificar turno_id"}`, http.StatusBadRequest)
+		return
 	}
 
-	// Si no se encontró asignación, requerir datos manuales
-	if ambienteID == 0 {
-		if req.AmbienteID == nil || req.TurnoID == nil {
-			http.Error(w, `{"error":"El docente no tiene asignaciones. Debe especificar ambiente_id y turno_id manualmente"}`, http.StatusBadRequest)
-			return
-		}
-		ambienteID = *req.AmbienteID
-		turnoID = *req.TurnoID
-	}
-
-	registro, err := h.registroUseCase.RegistrarSalida(docente.ID, ambienteID, turnoID, llaveID, req.Observaciones)
+	registro, err := h.registroUseCase.RegistrarSalida(docente.ID, *req.TurnoID, req.LlaveID, req.Observaciones)
 	if err != nil {
 		http.Error(w, fmt.Sprintf(`{"error":"%s"}`, err.Error()), http.StatusBadRequest)
 		return
@@ -191,13 +120,11 @@ func (h *RegistroHandler) GetRegistrosHoy(w http.ResponseWriter, r *http.Request
 	query := `
 		SELECT
 			r.id, r.docente_id, d.nombre_completo as docente_nombre, d.documento_identidad as docente_ci,
-			r.ambiente_id, a.codigo as ambiente_codigo,
 			r.turno_id, t.nombre as turno_nombre,
-			r.llave_id, l.codigo as llave_codigo,
+			r.llave_id, l.codigo as llave_codigo, l.aula_codigo, l.aula_nombre,
 			r.tipo, r.fecha_hora, r.minutos_retraso, r.minutos_extra, r.es_excepcional
 		FROM registros r
 		INNER JOIN docentes d ON r.docente_id = d.id
-		INNER JOIN ambientes_academicos a ON r.ambiente_id = a.id
 		INNER JOIN turnos t ON r.turno_id = t.id
 		LEFT JOIN llaves l ON r.llave_id = l.id
 		WHERE DATE(r.fecha_hora) = CURRENT_DATE
@@ -216,9 +143,8 @@ func (h *RegistroHandler) GetRegistrosHoy(w http.ResponseWriter, r *http.Request
 		var reg dto.RegistroHoyResponse
 		err := rows.Scan(
 			&reg.ID, &reg.DocenteID, &reg.DocenteNombre, &reg.DocenteCI,
-			&reg.AmbienteID, &reg.AmbienteCodigo,
 			&reg.TurnoID, &reg.TurnoNombre,
-			&reg.LlaveID, &reg.LlaveCodigo,
+			&reg.LlaveID, &reg.LlaveCodigo, &reg.AulaCodigo, &reg.AulaNombre,
 			&reg.Tipo, &reg.FechaHora, &reg.MinutosRetraso, &reg.MinutosExtra, &reg.EsExcepcional,
 		)
 		if err != nil {

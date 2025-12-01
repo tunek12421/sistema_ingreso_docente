@@ -16,17 +16,17 @@ func NewLlaveRepository(db *sql.DB) *LlaveRepositoryImpl {
 }
 
 func (r *LlaveRepositoryImpl) FindByID(id int) (*entities.Llave, error) {
-	query := `SELECT id, codigo, ambiente_id, estado, descripcion, activo, created_at, updated_at
+	query := `SELECT id, codigo, aula_codigo, aula_nombre, estado, descripcion, created_at, updated_at
 	          FROM llaves WHERE id = $1`
 
 	llave := &entities.Llave{}
 	err := r.db.QueryRow(query, id).Scan(
 		&llave.ID,
 		&llave.Codigo,
-		&llave.AmbienteID,
+		&llave.AulaCodigo,
+		&llave.AulaNombre,
 		&llave.Estado,
 		&llave.Descripcion,
-		&llave.Activo,
 		&llave.CreatedAt,
 		&llave.UpdatedAt,
 	)
@@ -42,17 +42,17 @@ func (r *LlaveRepositoryImpl) FindByID(id int) (*entities.Llave, error) {
 }
 
 func (r *LlaveRepositoryImpl) FindByCodigo(codigo string) (*entities.Llave, error) {
-	query := `SELECT id, codigo, ambiente_id, estado, descripcion, activo, created_at, updated_at
+	query := `SELECT id, codigo, aula_codigo, aula_nombre, estado, descripcion, created_at, updated_at
 	          FROM llaves WHERE codigo = $1`
 
 	llave := &entities.Llave{}
 	err := r.db.QueryRow(query, codigo).Scan(
 		&llave.ID,
 		&llave.Codigo,
-		&llave.AmbienteID,
+		&llave.AulaCodigo,
+		&llave.AulaNombre,
 		&llave.Estado,
 		&llave.Descripcion,
-		&llave.Activo,
 		&llave.CreatedAt,
 		&llave.UpdatedAt,
 	)
@@ -67,11 +67,11 @@ func (r *LlaveRepositoryImpl) FindByCodigo(codigo string) (*entities.Llave, erro
 	return llave, nil
 }
 
-func (r *LlaveRepositoryImpl) FindByAmbiente(ambienteID int) ([]*entities.Llave, error) {
-	query := `SELECT id, codigo, ambiente_id, estado, descripcion, activo, created_at, updated_at
-	          FROM llaves WHERE ambiente_id = $1 AND activo = TRUE ORDER BY codigo`
+func (r *LlaveRepositoryImpl) FindByAulaCodigo(aulaCodigo string) ([]*entities.Llave, error) {
+	query := `SELECT id, codigo, aula_codigo, aula_nombre, estado, descripcion, created_at, updated_at
+	          FROM llaves WHERE aula_codigo = $1 ORDER BY codigo`
 
-	rows, err := r.db.Query(query, ambienteID)
+	rows, err := r.db.Query(query, aulaCodigo)
 	if err != nil {
 		return nil, err
 	}
@@ -83,10 +83,10 @@ func (r *LlaveRepositoryImpl) FindByAmbiente(ambienteID int) ([]*entities.Llave,
 		err := rows.Scan(
 			&llave.ID,
 			&llave.Codigo,
-			&llave.AmbienteID,
+			&llave.AulaCodigo,
+			&llave.AulaNombre,
 			&llave.Estado,
 			&llave.Descripcion,
-			&llave.Activo,
 			&llave.CreatedAt,
 			&llave.UpdatedAt,
 		)
@@ -100,8 +100,8 @@ func (r *LlaveRepositoryImpl) FindByAmbiente(ambienteID int) ([]*entities.Llave,
 }
 
 func (r *LlaveRepositoryImpl) FindAll() ([]*entities.Llave, error) {
-	query := `SELECT id, codigo, ambiente_id, estado, descripcion, activo, created_at, updated_at
-	          FROM llaves WHERE activo = TRUE ORDER BY codigo`
+	query := `SELECT id, codigo, aula_codigo, aula_nombre, estado, descripcion, created_at, updated_at
+	          FROM llaves ORDER BY codigo`
 
 	rows, err := r.db.Query(query)
 	if err != nil {
@@ -115,10 +115,10 @@ func (r *LlaveRepositoryImpl) FindAll() ([]*entities.Llave, error) {
 		err := rows.Scan(
 			&llave.ID,
 			&llave.Codigo,
-			&llave.AmbienteID,
+			&llave.AulaCodigo,
+			&llave.AulaNombre,
 			&llave.Estado,
 			&llave.Descripcion,
-			&llave.Activo,
 			&llave.CreatedAt,
 			&llave.UpdatedAt,
 		)
@@ -132,30 +132,30 @@ func (r *LlaveRepositoryImpl) FindAll() ([]*entities.Llave, error) {
 }
 
 func (r *LlaveRepositoryImpl) Create(llave *entities.Llave) error {
-	query := `INSERT INTO llaves (codigo, ambiente_id, estado, descripcion, activo)
+	query := `INSERT INTO llaves (codigo, aula_codigo, aula_nombre, estado, descripcion)
 	          VALUES ($1, $2, $3, $4, $5) RETURNING id, created_at, updated_at`
 
 	return r.db.QueryRow(
 		query,
 		llave.Codigo,
-		llave.AmbienteID,
+		llave.AulaCodigo,
+		llave.AulaNombre,
 		llave.Estado,
 		llave.Descripcion,
-		llave.Activo,
 	).Scan(&llave.ID, &llave.CreatedAt, &llave.UpdatedAt)
 }
 
 func (r *LlaveRepositoryImpl) Update(llave *entities.Llave) error {
-	query := `UPDATE llaves SET codigo = $1, ambiente_id = $2, estado = $3,
-	          descripcion = $4, activo = $5 WHERE id = $6 RETURNING updated_at`
+	query := `UPDATE llaves SET codigo = $1, aula_codigo = $2, aula_nombre = $3, estado = $4,
+	          descripcion = $5 WHERE id = $6 RETURNING updated_at`
 
 	return r.db.QueryRow(
 		query,
 		llave.Codigo,
-		llave.AmbienteID,
+		llave.AulaCodigo,
+		llave.AulaNombre,
 		llave.Estado,
 		llave.Descripcion,
-		llave.Activo,
 		llave.ID,
 	).Scan(&llave.UpdatedAt)
 }
@@ -167,7 +167,7 @@ func (r *LlaveRepositoryImpl) UpdateEstado(id int, estado entities.EstadoLlave) 
 }
 
 func (r *LlaveRepositoryImpl) Delete(id int) error {
-	query := `UPDATE llaves SET activo = FALSE WHERE id = $1`
+	query := `DELETE FROM llaves WHERE id = $1`
 	_, err := r.db.Exec(query, id)
 	return err
 }

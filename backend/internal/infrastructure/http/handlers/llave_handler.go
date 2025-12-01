@@ -61,15 +61,15 @@ func (h *LlaveHandler) GetByCodigo(w http.ResponseWriter, r *http.Request) {
 	json.NewEncoder(w).Encode(llave)
 }
 
-func (h *LlaveHandler) GetByAmbiente(w http.ResponseWriter, r *http.Request) {
+func (h *LlaveHandler) GetByAulaCodigo(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
-	ambienteID, err := strconv.Atoi(vars["ambiente_id"])
-	if err != nil {
-		http.Error(w, `{"error":"ID de ambiente invalido"}`, http.StatusBadRequest)
+	aulaCodigo := vars["aula_codigo"]
+	if aulaCodigo == "" {
+		http.Error(w, `{"error":"Código de aula requerido"}`, http.StatusBadRequest)
 		return
 	}
 
-	llaves, err := h.llaveUseCase.GetByAmbiente(ambienteID)
+	llaves, err := h.llaveUseCase.GetByAulaCodigo(aulaCodigo)
 	if err != nil {
 		http.Error(w, `{"error":"Error obteniendo llaves"}`, http.StatusInternalServerError)
 		return

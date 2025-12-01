@@ -7,9 +7,7 @@ import RegistroIngresoTailwind from '../Registro/RegistroIngresoTailwind';
 import RegistrosHoy from '../Registro/RegistrosHoy';
 import MisRegistros from '../Registro/MisRegistros';
 import TurnosList from '../Turnos/TurnosList';
-import AmbientesList from '../Ambientes/AmbientesList';
 import LlavesList from '../Llaves/LlavesList';
-import AsignacionesList from '../Asignaciones/AsignacionesList';
 import './Dashboard.css';
 
 const Dashboard = () => {
@@ -35,12 +33,8 @@ const Dashboard = () => {
         return <DocentesList />;
       case 'turnos':
         return <TurnosList />;
-      case 'ambientes':
-        return <AmbientesList />;
       case 'llaves':
         return <LlavesList />;
-      case 'asignaciones':
-        return <AsignacionesList />;
       case 'reportes':
         return <div className="placeholder"><h3>Reportes y Estadísticas</h3><p>En desarrollo...</p></div>;
 

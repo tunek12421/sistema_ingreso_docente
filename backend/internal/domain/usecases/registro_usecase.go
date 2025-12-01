@@ -9,27 +9,24 @@ import (
 )
 
 type RegistroUseCase struct {
-	registroRepo     repositories.RegistroRepository
-	turnoRepo        repositories.TurnoRepository
-	llaveRepo        repositories.LlaveRepository
-	asignacionRepo   repositories.AsignacionRepository
+	registroRepo repositories.RegistroRepository
+	turnoRepo    repositories.TurnoRepository
+	llaveRepo    repositories.LlaveRepository
 }
 
 func NewRegistroUseCase(
 	registroRepo repositories.RegistroRepository,
 	turnoRepo repositories.TurnoRepository,
 	llaveRepo repositories.LlaveRepository,
-	asignacionRepo repositories.AsignacionRepository,
 ) *RegistroUseCase {
 	return &RegistroUseCase{
-		registroRepo:   registroRepo,
-		turnoRepo:      turnoRepo,
-		llaveRepo:      llaveRepo,
-		asignacionRepo: asignacionRepo,
+		registroRepo: registroRepo,
+		turnoRepo:    turnoRepo,
+		llaveRepo:    llaveRepo,
 	}
 }
 
-func (uc *RegistroUseCase) RegistrarIngreso(docenteID, ambienteID, turnoID int, llaveID *int, observaciones *string) (*entities.Registro, error) {
+func (uc *RegistroUseCase) RegistrarIngreso(docenteID, turnoID int, llaveID *int, observaciones *string) (*entities.Registro, error) {
 	// Obtener turno para calcular retraso
 	turno, err := uc.turnoRepo.FindByID(turnoID)
 	if err != nil {
@@ -39,41 +36,15 @@ func (uc *RegistroUseCase) RegistrarIngreso(docenteID, ambienteID, turnoID int, 
 	ahora := time.Now()
 	minutosRetraso := uc.calcularRetraso(ahora, turno.HoraInicio)
 
-	// FLUJO HÍBRIDO INTELIGENTE: Verificar si existe asignación activa
-	asignaciones, err := uc.asignacionRepo.FindByDocenteYFecha(docenteID, ahora)
-	if err != nil {
-		// Si hay error al buscar asignaciones, continuar pero marcar como excepcional
-		asignaciones = []*entities.Asignacion{}
-	}
-
-	// Buscar asignación que coincida con el turno y ambiente actual
-	var asignacionEncontrada *entities.Asignacion
-	for _, asig := range asignaciones {
-		if asig.TurnoID == turnoID && asig.AmbienteID == ambienteID && asig.Activo {
-			asignacionEncontrada = asig
-			break
-		}
-	}
-
-	// Determinar si el registro es excepcional
-	esExcepcional := asignacionEncontrada == nil
-
-	// Si hay asignación y no se proporcionó llave, usar la de la asignación
-	llaveAUsar := llaveID
-	if asignacionEncontrada != nil && llaveID == nil && asignacionEncontrada.LlaveID != nil {
-		llaveAUsar = asignacionEncontrada.LlaveID
-	}
-
 	registro := &entities.Registro{
 		DocenteID:      docenteID,
-		AmbienteID:     ambienteID,
 		TurnoID:        turnoID,
-		LlaveID:        llaveAUsar,
+		LlaveID:        llaveID,
 		Tipo:           entities.TipoIngreso,
 		FechaHora:      ahora,
 		MinutosRetraso: minutosRetraso,
 		MinutosExtra:   0,
-		EsExcepcional:  esExcepcional,
+		EsExcepcional:  false,
 		Observaciones:  observaciones,
 	}
 
@@ -82,14 +53,14 @@ func (uc *RegistroUseCase) RegistrarIngreso(docenteID, ambienteID, turnoID int, 
 	}
 
 	// Actualizar estado de llave a "en_uso"
-	if llaveAUsar != nil {
-		_ = uc.llaveRepo.UpdateEstado(*llaveAUsar, entities.EstadoEnUso)
+	if llaveID != nil {
+		_ = uc.llaveRepo.UpdateEstado(*llaveID, entities.EstadoEnUso)
 	}
 
 	return registro, nil
 }
 
-func (uc *RegistroUseCase) RegistrarSalida(docenteID, ambienteID, turnoID int, llaveID *int, observaciones *string) (*entities.Registro, error) {
+func (uc *RegistroUseCase) RegistrarSalida(docenteID, turnoID int, llaveID *int, observaciones *string) (*entities.Registro, error) {
 	// Obtener turno para calcular minutos extra
 	turno, err := uc.turnoRepo.FindByID(turnoID)
 	if err != nil {
@@ -99,40 +70,15 @@ func (uc *RegistroUseCase) RegistrarSalida(docenteID, ambienteID, turnoID int, l
 	ahora := time.Now()
 	minutosExtra := uc.calcularMinutosExtra(ahora, turno.HoraFin)
 
-	// FLUJO HÍBRIDO INTELIGENTE: Verificar si existe asignación activa
-	asignaciones, err := uc.asignacionRepo.FindByDocenteYFecha(docenteID, ahora)
-	if err != nil {
-		asignaciones = []*entities.Asignacion{}
-	}
-
-	// Buscar asignación que coincida con el turno y ambiente actual
-	var asignacionEncontrada *entities.Asignacion
-	for _, asig := range asignaciones {
-		if asig.TurnoID == turnoID && asig.AmbienteID == ambienteID && asig.Activo {
-			asignacionEncontrada = asig
-			break
-		}
-	}
-
-	// Determinar si el registro es excepcional
-	esExcepcional := asignacionEncontrada == nil
-
-	// Si hay asignación y no se proporcionó llave, usar la de la asignación
-	llaveAUsar := llaveID
-	if asignacionEncontrada != nil && llaveID == nil && asignacionEncontrada.LlaveID != nil {
-		llaveAUsar = asignacionEncontrada.LlaveID
-	}
-
 	registro := &entities.Registro{
 		DocenteID:      docenteID,
-		AmbienteID:     ambienteID,
 		TurnoID:        turnoID,
-		LlaveID:        llaveAUsar,
+		LlaveID:        llaveID,
 		Tipo:           entities.TipoSalida,
 		FechaHora:      ahora,
 		MinutosRetraso: 0,
 		MinutosExtra:   minutosExtra,
-		EsExcepcional:  esExcepcional,
+		EsExcepcional:  false,
 		Observaciones:  observaciones,
 	}
 
@@ -141,8 +87,8 @@ func (uc *RegistroUseCase) RegistrarSalida(docenteID, ambienteID, turnoID int, l
 	}
 
 	// Actualizar estado de llave a "disponible"
-	if llaveAUsar != nil {
-		_ = uc.llaveRepo.UpdateEstado(*llaveAUsar, entities.EstadoDisponible)
+	if llaveID != nil {
+		_ = uc.llaveRepo.UpdateEstado(*llaveID, entities.EstadoDisponible)
 	}
 
 	return registro, nil

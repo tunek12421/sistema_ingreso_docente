@@ -9,9 +9,7 @@ const Sidebar = ({ activeSection, setActiveSection }) => {
     jefe_carrera: [
       { id: 'docentes', label: 'Docentes', icon: '👨‍🏫' },
       { id: 'turnos', label: 'Turnos', icon: '🕐' },
-      { id: 'ambientes', label: 'Aulas/Ambientes', icon: '🏫' },
       { id: 'llaves', label: 'Llaves', icon: '🔑' },
-      { id: 'asignaciones', label: 'Asignaciones', icon: '📋' },
       { id: 'reportes', label: 'Reportes', icon: '📊' },
     ],
     bibliotecario: [
