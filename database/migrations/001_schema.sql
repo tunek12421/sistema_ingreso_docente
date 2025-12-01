@@ -22,7 +22,9 @@ CREATE TABLE IF NOT EXISTS usuarios (
     id SERIAL PRIMARY KEY,
     username VARCHAR(100) UNIQUE NOT NULL,
     password VARCHAR(255) NOT NULL,
-    rol VARCHAR(50) NOT NULL CHECK (rol IN ('jefe_carrera', 'bibliotecario', 'docente')),
+    rol VARCHAR(50) NOT NULL CHECK (rol IN ('administrador', 'jefe_carrera', 'bibliotecario', 'docente')),
+    nombre_completo VARCHAR(255),
+    email VARCHAR(255),
     activo BOOLEAN DEFAULT TRUE,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
@@ -152,10 +154,11 @@ ON CONFLICT (nombre) DO NOTHING;
 
 -- Usuarios de prueba (password para todos: admin123)
 -- Hash bcrypt de "admin123": $2a$10$C3aeDMEplzVnp40izb2E8uAwOp5ZwANcLMutamZg1FTibPZOrdEdu
-INSERT INTO usuarios (username, password, rol) VALUES
-('admin', '$2a$10$C3aeDMEplzVnp40izb2E8uAwOp5ZwANcLMutamZg1FTibPZOrdEdu', 'jefe_carrera'),
-('bibliotecario', '$2a$10$C3aeDMEplzVnp40izb2E8uAwOp5ZwANcLMutamZg1FTibPZOrdEdu', 'bibliotecario'),
-('docente1', '$2a$10$C3aeDMEplzVnp40izb2E8uAwOp5ZwANcLMutamZg1FTibPZOrdEdu', 'docente')
+INSERT INTO usuarios (username, password, rol, nombre_completo, email) VALUES
+('admin', '$2a$10$C3aeDMEplzVnp40izb2E8uAwOp5ZwANcLMutamZg1FTibPZOrdEdu', 'administrador', 'Administrador del Sistema', 'admin@universidad.edu'),
+('jefe', '$2a$10$C3aeDMEplzVnp40izb2E8uAwOp5ZwANcLMutamZg1FTibPZOrdEdu', 'jefe_carrera', 'Jefe de Carrera', 'jefe@universidad.edu'),
+('bibliotecario', '$2a$10$C3aeDMEplzVnp40izb2E8uAwOp5ZwANcLMutamZg1FTibPZOrdEdu', 'bibliotecario', 'Bibliotecario Principal', 'biblioteca@universidad.edu'),
+('docente1', '$2a$10$C3aeDMEplzVnp40izb2E8uAwOp5ZwANcLMutamZg1FTibPZOrdEdu', 'docente', 'Juan Pérez García', 'juan.perez@universidad.edu')
 ON CONFLICT (username) DO NOTHING;
 
 -- Docente de prueba

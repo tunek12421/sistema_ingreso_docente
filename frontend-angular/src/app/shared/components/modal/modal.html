@@ -1,0 +1,45 @@
+@if (isOpen()) {
+  <div
+    class="fixed inset-0 z-50 overflow-y-auto"
+    (click)="onBackdropClick($event)"
+  >
+    <!-- Backdrop -->
+    <div class="fixed inset-0 bg-black bg-opacity-50 transition-opacity"></div>
+
+    <!-- Modal -->
+    <div class="flex min-h-full items-center justify-center p-4">
+      <div
+        [class]="'relative w-full ' + getSizeClass() + ' transform overflow-hidden rounded-lg bg-white shadow-xl transition-all'"
+        (click)="$event.stopPropagation()"
+      >
+        <!-- Header -->
+        <div class="border-b border-gray-200 px-6 py-4">
+          <div class="flex items-center justify-between">
+            <h3 class="text-lg font-semibold text-gray-900">
+              {{ title() }}
+            </h3>
+            <button
+              type="button"
+              (click)="onClose()"
+              class="text-gray-400 hover:text-gray-600 transition-colors"
+            >
+              <svg class="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+              </svg>
+            </button>
+          </div>
+        </div>
+
+        <!-- Content -->
+        <div class="px-6 py-4">
+          <ng-content></ng-content>
+        </div>
+
+        <!-- Footer -->
+        <div class="border-t border-gray-200 px-6 py-4 bg-gray-50">
+          <ng-content select="[footer]"></ng-content>
+        </div>
+      </div>
+    </div>
+  </div>
+}

@@ -14,6 +14,7 @@
 main
 backend/main
 backend/cmd/api/main
+backend/bin/
 
 # Test binaries
 *.test
@@ -26,25 +27,31 @@ vendor/
 go.work
 
 # ============================================
-# Frontend (Node.js / React)
+# Frontend (Node.js / Angular)
 # ============================================
 # Dependencias
 frontend/node_modules/
+frontend-angular/node_modules/
 node_modules/
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
+pnpm-debug.log*
 
 # Build de producción
 frontend/build/
 frontend/dist/
+frontend-angular/dist/
+frontend-angular/.angular/
 build/
 dist/
+.angular/
 
 # Cache
 .npm
 .eslintcache
 .cache
+.angular/cache
 
 # Logs
 logs
@@ -53,12 +60,19 @@ logs
 # Testing
 coverage/
 .nyc_output
+frontend-angular/coverage/
 
 # Variables de entorno locales
 .env.local
 .env.development.local
 .env.test.local
 .env.production.local
+
+# Angular específico
+.angular/
+*.ngfactory.ts
+*.ngsummary.json
+*.metadata.json
 
 # ============================================
 # Base de Datos

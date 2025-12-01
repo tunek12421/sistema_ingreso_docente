@@ -1,0 +1,132 @@
+@startuml Casos de Uso - Docente
+
+left to right direction
+skinparam packageStyle rectangle
+
+actor "Docente" as docente
+actor "Bibliotecario/\nJefe de Carrera" as personal #lightblue
+
+rectangle "Sistema de Ingreso Docente" {
+
+  package "Interacciones del Docente" #lightgray {
+    usecase "Solicitar Retiro\nde Llave" as UC_SolicitarRetiro
+    usecase "Solicitar Devolución\nde Llave" as UC_SolicitarDevolucion
+    usecase "Presentar\nCarnet/CI" as UC_PresentarCI
+  }
+
+  package "Acciones del Sistema (Automáticas)" {
+    usecase "Verificar CI\ndel Docente" as UC_VerificarCI
+    usecase "Verificar Turno\nAsignado" as UC_VerificarTurno
+    usecase "Verificar Disponibilidad\nde Llave" as UC_VerificarLlave
+    usecase "Registrar Ingreso\nen el Sistema" as UC_RegistrarIngreso
+    usecase "Registrar Salida\nen el Sistema" as UC_RegistrarSalida
+    usecase "Entregar Llave\nFísica" as UC_EntregarLlave
+    usecase "Recibir Llave\nFísica" as UC_RecibirLlave
+  }
+
+}
+
+' ==================== RELACIONES DOCENTE ====================
+docente --> UC_SolicitarRetiro
+docente --> UC_SolicitarDevolucion
+docente --> UC_PresentarCI
+
+' ==================== FLUJO DE RETIRO DE LLAVE ====================
+UC_SolicitarRetiro ..> UC_PresentarCI : <<include>>
+UC_PresentarCI ..> UC_VerificarCI : <<include>>
+UC_VerificarCI ..> UC_VerificarTurno : <<include>>
+UC_VerificarTurno ..> UC_VerificarLlave : <<include>>
+UC_VerificarLlave ..> UC_RegistrarIngreso : <<include>>
+UC_RegistrarIngreso ..> UC_EntregarLlave : <<include>>
+
+' ==================== FLUJO DE DEVOLUCIÓN DE LLAVE ====================
+UC_SolicitarDevolucion ..> UC_RecibirLlave : <<include>>
+UC_RecibirLlave ..> UC_RegistrarSalida : <<include>>
+
+' ==================== ACCIONES DEL PERSONAL ====================
+personal --> UC_VerificarCI
+personal --> UC_VerificarTurno
+personal --> UC_VerificarLlave
+personal --> UC_RegistrarIngreso
+personal --> UC_RegistrarSalida
+personal --> UC_EntregarLlave
+personal --> UC_RecibirLlave
+
+' ==================== NOTAS ====================
+note right of docente
+  **Rol:** Docente
+  **Acciones:**
+  - NO tiene acceso directo al sistema
+  - Interactúa físicamente con el personal
+  - Presenta su CI para identificación
+  - Retira y devuelve llaves físicas
+end note
+
+note top of UC_SolicitarRetiro
+  **Flujo de Retiro de Llave:**
+  1. Docente llega a biblioteca
+  2. Solicita llave de aula
+  3. Presenta su carnet/CI
+  4. Personal verifica en sistema
+  5. Si todo OK, entrega llave física
+end note
+
+note bottom of UC_SolicitarDevolucion
+  **Flujo de Devolución de Llave:**
+  1. Docente termina su clase
+  2. Devuelve llave física al personal
+  3. Personal registra devolución
+  4. Sistema actualiza estado
+end note
+
+note left of UC_VerificarCI
+  **Sistema verifica:**
+  - CI existe en base de datos
+  - Docente está activo
+end note
+
+note left of UC_VerificarTurno
+  **Sistema verifica:**
+  - Docente tiene turno asignado
+  - Hora actual está dentro del turno
+  - Día de la semana coincide
+end note
+
+note left of UC_VerificarLlave
+  **Sistema verifica:**
+  - Llave solicitada existe
+  - Llave está disponible
+  - Llave no está en mantenimiento
+end note
+
+note bottom of personal
+  **Rol:** Bibliotecario o Jefe de Carrera
+  **Responsabilidad:**
+  - Opera el sistema en nombre del docente
+  - Valida información
+  - Entrega/recibe llaves físicas
+  - Registra movimientos
+end note
+
+' ==================== EXCEPCIONES ====================
+note right of UC_VerificarCI
+  **Excepciones:**
+  - CI no registrado → Rechazar
+  - Docente inactivo → Rechazar
+end note
+
+note right of UC_VerificarTurno
+  **Excepciones:**
+  - Sin turno asignado → Rechazar
+  - Fuera de horario → Rechazar
+  - Día no permitido → Rechazar
+end note
+
+note right of UC_VerificarLlave
+  **Excepciones:**
+  - Llave no disponible → Rechazar
+  - Llave en mantenimiento → Rechazar
+  - Llave perdida → Rechazar
+end note
+
+@enduml

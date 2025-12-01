@@ -16,7 +16,7 @@ func NewUsuarioRepository(db *sql.DB) *UsuarioRepositoryImpl {
 }
 
 func (r *UsuarioRepositoryImpl) FindByUsername(username string) (*entities.Usuario, error) {
-	query := `SELECT id, username, password, rol, activo, created_at, updated_at
+	query := `SELECT id, username, password, rol, nombre_completo, email, activo, created_at, updated_at
 	          FROM usuarios WHERE username = $1 AND activo = TRUE`
 
 	usuario := &entities.Usuario{}
@@ -25,6 +25,8 @@ func (r *UsuarioRepositoryImpl) FindByUsername(username string) (*entities.Usuar
 		&usuario.Username,
 		&usuario.Password,
 		&usuario.Rol,
+		&usuario.NombreCompleto,
+		&usuario.Email,
 		&usuario.Activo,
 		&usuario.CreatedAt,
 		&usuario.UpdatedAt,
@@ -41,7 +43,7 @@ func (r *UsuarioRepositoryImpl) FindByUsername(username string) (*entities.Usuar
 }
 
 func (r *UsuarioRepositoryImpl) FindByID(id int) (*entities.Usuario, error) {
-	query := `SELECT id, username, password, rol, activo, created_at, updated_at
+	query := `SELECT id, username, password, rol, nombre_completo, email, activo, created_at, updated_at
 	          FROM usuarios WHERE id = $1`
 
 	usuario := &entities.Usuario{}
@@ -50,6 +52,8 @@ func (r *UsuarioRepositoryImpl) FindByID(id int) (*entities.Usuario, error) {
 		&usuario.Username,
 		&usuario.Password,
 		&usuario.Rol,
+		&usuario.NombreCompleto,
+		&usuario.Email,
 		&usuario.Activo,
 		&usuario.CreatedAt,
 		&usuario.UpdatedAt,
@@ -66,27 +70,31 @@ func (r *UsuarioRepositoryImpl) FindByID(id int) (*entities.Usuario, error) {
 }
 
 func (r *UsuarioRepositoryImpl) Create(usuario *entities.Usuario) error {
-	query := `INSERT INTO usuarios (username, password, rol, activo)
-	          VALUES ($1, $2, $3, $4) RETURNING id, created_at, updated_at`
+	query := `INSERT INTO usuarios (username, password, rol, nombre_completo, email, activo)
+	          VALUES ($1, $2, $3, $4, $5, $6) RETURNING id, created_at, updated_at`
 
 	return r.db.QueryRow(
 		query,
 		usuario.Username,
 		usuario.Password,
 		usuario.Rol,
+		usuario.NombreCompleto,
+		usuario.Email,
 		usuario.Activo,
 	).Scan(&usuario.ID, &usuario.CreatedAt, &usuario.UpdatedAt)
 }
 
 func (r *UsuarioRepositoryImpl) Update(usuario *entities.Usuario) error {
-	query := `UPDATE usuarios SET username = $1, password = $2, rol = $3, activo = $4
-	          WHERE id = $5 RETURNING updated_at`
+	query := `UPDATE usuarios SET username = $1, password = $2, rol = $3, nombre_completo = $4, email = $5, activo = $6
+	          WHERE id = $7 RETURNING updated_at`
 
 	return r.db.QueryRow(
 		query,
 		usuario.Username,
 		usuario.Password,
 		usuario.Rol,
+		usuario.NombreCompleto,
+		usuario.Email,
 		usuario.Activo,
 		usuario.ID,
 	).Scan(&usuario.UpdatedAt)
@@ -99,7 +107,7 @@ func (r *UsuarioRepositoryImpl) Delete(id int) error {
 }
 
 func (r *UsuarioRepositoryImpl) FindAll() ([]*entities.Usuario, error) {
-	query := `SELECT id, username, password, rol, activo, created_at, updated_at
+	query := `SELECT id, username, password, rol, nombre_completo, email, activo, created_at, updated_at
 	          FROM usuarios ORDER BY id`
 
 	rows, err := r.db.Query(query)
@@ -116,6 +124,8 @@ func (r *UsuarioRepositoryImpl) FindAll() ([]*entities.Usuario, error) {
 			&usuario.Username,
 			&usuario.Password,
 			&usuario.Rol,
+			&usuario.NombreCompleto,
+			&usuario.Email,
 			&usuario.Activo,
 			&usuario.CreatedAt,
 			&usuario.UpdatedAt,

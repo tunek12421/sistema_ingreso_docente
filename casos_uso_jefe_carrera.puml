@@ -1,0 +1,120 @@
+@startuml Casos de Uso - Jefe de Carrera
+
+left to right direction
+skinparam packageStyle rectangle
+
+actor "Jefe de Carrera" as jefe
+
+rectangle "Sistema de Ingreso Docente" {
+
+  package "Autenticación" {
+    usecase "Iniciar Sesión" as UC_Login
+  }
+
+  package "Gestión Completa de Docentes" {
+    usecase "Listar Todos\nlos Docentes" as UC_ListarDocentes
+    usecase "Buscar Docente\npor CI" as UC_BuscarDocenteCI
+    usecase "Ver Detalle\nde Docente" as UC_VerDocente
+    usecase "Registrar Nuevo\nDocente" as UC_RegistrarDocente
+    usecase "Actualizar Datos\nde Docente" as UC_ActualizarDocente
+    usecase "Eliminar Docente" as UC_EliminarDocente
+  }
+
+  package "Consulta y Reportes de Registros" {
+    usecase "Ver Registros\nde Hoy" as UC_VerRegistrosHoy
+    usecase "Consultar Registros\npor Fecha" as UC_ConsultarRegistros
+    usecase "Ver Quién Tiene\nla Llave Actual" as UC_LlaveActual
+    usecase "Editar Registro" as UC_EditarRegistro
+    usecase "Generar Reporte\nde Asistencias" as UC_GenerarReporte
+    usecase "Exportar Registros" as UC_ExportarRegistros
+  }
+
+}
+
+' ==================== RELACIONES ====================
+jefe --> UC_Login
+
+' Docentes - Control Total
+jefe --> UC_ListarDocentes
+jefe --> UC_BuscarDocenteCI
+jefe --> UC_VerDocente
+jefe --> UC_RegistrarDocente
+jefe --> UC_ActualizarDocente
+jefe --> UC_EliminarDocente
+
+' Registros - Consulta, Edición y Reportes
+jefe --> UC_VerRegistrosHoy
+jefe --> UC_ConsultarRegistros
+jefe --> UC_LlaveActual
+jefe --> UC_EditarRegistro
+jefe --> UC_GenerarReporte
+jefe --> UC_ExportarRegistros
+
+' ==================== INCLUDES ====================
+UC_GenerarReporte ..> UC_ConsultarRegistros : <<include>>
+UC_ExportarRegistros ..> UC_ConsultarRegistros : <<include>>
+
+' ==================== NOTAS ====================
+note right of UC_RegistrarDocente
+  **Endpoint:** POST /docentes
+  **Campos:**
+  - CI (único)
+  - Nombres
+  - Apellidos
+  - Teléfono
+  - Email
+  **Validación:** CI único
+end note
+
+note right of UC_ActualizarDocente
+  **Endpoint:** PUT /docentes/{id}
+  **Permite modificar:**
+  - Nombres
+  - Apellidos
+  - Teléfono
+  - Email
+  **No modifica:** CI
+end note
+
+note right of UC_EliminarDocente
+  **Endpoint:** DELETE /docentes/{id}
+  **Validaciones:**
+  - Verificar si tiene registros activos
+  - Advertir antes de eliminar
+end note
+
+note bottom of UC_EditarRegistro
+  **Funcionalidad:**
+  Permite corregir registros
+  de ingreso/salida con errores
+  (horarios, llaves, etc.)
+end note
+
+note bottom of UC_GenerarReporte
+  **Reportes disponibles:**
+  - Asistencias por docente
+  - Uso de llaves por período
+  - Registros por fecha
+  - Estadísticas generales
+end note
+
+note bottom of UC_ExportarRegistros
+  **Formatos de exportación:**
+  - PDF
+  - Excel (XLSX)
+  - CSV
+end note
+
+note top of jefe
+  **Rol:** Jefe de Carrera
+  **Permisos:**
+  - CRUD completo de Docentes
+  - Ver y editar Registros
+  - Generar reportes
+
+  **NO puede gestionar:**
+  - Llaves (solo consulta)
+  - Turnos (solo consulta)
+end note
+
+@enduml

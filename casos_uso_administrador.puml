@@ -1,0 +1,188 @@
+@startuml Casos de Uso - Administrador
+
+left to right direction
+skinparam packageStyle rectangle
+
+actor "Administrador" as admin
+
+rectangle "Sistema de Ingreso Docente" {
+
+  package "Autenticación" {
+    usecase "Iniciar Sesión" as UC_Login
+  }
+
+  package "Gestión de Usuarios del Sistema" {
+    usecase "Listar Usuarios\ndel Sistema" as UC_ListarUsuarios
+    usecase "Crear Usuario\nBibliotecario" as UC_CrearBibliotecario
+    usecase "Crear Usuario\nJefe de Carrera" as UC_CrearJefeCarrera
+    usecase "Actualizar Usuario" as UC_ActualizarUsuario
+    usecase "Eliminar Usuario" as UC_EliminarUsuario
+    usecase "Cambiar Contraseña\nde Usuario" as UC_CambiarPassword
+    usecase "Activar/Desactivar\nUsuario" as UC_ToggleUsuario
+  }
+
+  package "Gestión Completa de Docentes" {
+    usecase "Listar Todos\nlos Docentes" as UC_ListarDocentes
+    usecase "Buscar Docente\npor CI" as UC_BuscarDocenteCI
+    usecase "Ver Detalle\nde Docente" as UC_VerDocente
+    usecase "Registrar Nuevo\nDocente" as UC_RegistrarDocente
+    usecase "Actualizar Datos\nde Docente" as UC_ActualizarDocente
+    usecase "Eliminar Docente" as UC_EliminarDocente
+  }
+
+  package "Gestión Completa de Turnos" {
+    usecase "Listar Todos\nlos Turnos" as UC_ListarTurnos
+    usecase "Ver Detalle\nde Turno" as UC_VerTurno
+    usecase "Crear Nuevo\nTurno" as UC_CrearTurno
+    usecase "Actualizar Turno" as UC_ActualizarTurno
+    usecase "Eliminar Turno" as UC_EliminarTurno
+    usecase "Asignar Docente\na Turno" as UC_AsignarDocenteTurno
+  }
+
+  package "Gestión Completa de Llaves" {
+    usecase "Listar Todas\nlas Llaves" as UC_ListarLlaves
+    usecase "Buscar Llave\npor Código" as UC_BuscarLlaveCodigo
+    usecase "Buscar Llave\npor Aula" as UC_BuscarLlaveAula
+    usecase "Ver Detalle\nde Llave" as UC_VerLlave
+    usecase "Registrar Nueva\nLlave" as UC_RegistrarLlave
+    usecase "Actualizar Llave" as UC_ActualizarLlave
+    usecase "Eliminar Llave" as UC_EliminarLlave
+    usecase "Cambiar Estado\nde Llave" as UC_CambiarEstadoLlave
+  }
+
+  package "Consulta de Registros" {
+    usecase "Ver Registros\nde Hoy" as UC_VerRegistrosHoy
+    usecase "Consultar Registros\npor Fecha" as UC_ConsultarRegistros
+    usecase "Ver Quién Tiene\nla Llave Actual" as UC_LlaveActual
+    usecase "Generar Reportes" as UC_GenerarReportes
+  }
+
+}
+
+' ==================== RELACIONES ====================
+admin --> UC_Login
+
+' Usuarios del Sistema
+admin --> UC_ListarUsuarios
+admin --> UC_CrearBibliotecario
+admin --> UC_CrearJefeCarrera
+admin --> UC_ActualizarUsuario
+admin --> UC_EliminarUsuario
+admin --> UC_CambiarPassword
+admin --> UC_ToggleUsuario
+
+' Docentes
+admin --> UC_ListarDocentes
+admin --> UC_BuscarDocenteCI
+admin --> UC_VerDocente
+admin --> UC_RegistrarDocente
+admin --> UC_ActualizarDocente
+admin --> UC_EliminarDocente
+
+' Turnos
+admin --> UC_ListarTurnos
+admin --> UC_VerTurno
+admin --> UC_CrearTurno
+admin --> UC_ActualizarTurno
+admin --> UC_EliminarTurno
+admin --> UC_AsignarDocenteTurno
+
+' Llaves
+admin --> UC_ListarLlaves
+admin --> UC_BuscarLlaveCodigo
+admin --> UC_BuscarLlaveAula
+admin --> UC_VerLlave
+admin --> UC_RegistrarLlave
+admin --> UC_ActualizarLlave
+admin --> UC_EliminarLlave
+admin --> UC_CambiarEstadoLlave
+
+' Registros (solo consulta)
+admin --> UC_VerRegistrosHoy
+admin --> UC_ConsultarRegistros
+admin --> UC_LlaveActual
+admin --> UC_GenerarReportes
+
+' ==================== INCLUDES ====================
+UC_CrearTurno ..> UC_BuscarDocenteCI : <<include>>
+UC_ActualizarTurno ..> UC_BuscarDocenteCI : <<include>>
+UC_AsignarDocenteTurno ..> UC_BuscarDocenteCI : <<include>>
+
+' ==================== NOTAS ====================
+note right of UC_CrearBibliotecario
+  **Endpoint:** POST /usuarios
+  **Campos:**
+  - Username (único)
+  - Password (hasheado)
+  - Rol: "bibliotecario"
+  - Nombre completo
+  - Email
+end note
+
+note right of UC_CrearJefeCarrera
+  **Endpoint:** POST /usuarios
+  **Campos:**
+  - Username (único)
+  - Password (hasheado)
+  - Rol: "jefe_carrera"
+  - Nombre completo
+  - Email
+end note
+
+note right of UC_RegistrarDocente
+  **Endpoint:** POST /docentes
+  **Campos:**
+  - CI (único)
+  - Nombres
+  - Apellidos
+  - Teléfono
+  - Email
+end note
+
+note right of UC_CrearTurno
+  **Endpoint:** POST /turnos
+  **Campos:**
+  - Nombre del turno
+  - Hora inicio
+  - Hora fin
+  - Días de la semana
+end note
+
+note right of UC_AsignarDocenteTurno
+  **Permite:**
+  Asignar uno o varios docentes
+  a un turno específico
+end note
+
+note right of UC_RegistrarLlave
+  **Endpoint:** POST /llaves
+  **Campos:**
+  - Código de llave (único)
+  - Código de aula
+  - Descripción
+  - Estado: disponible
+end note
+
+note right of UC_CambiarEstadoLlave
+  **Estados:**
+  - disponible
+  - en_uso
+  - perdida
+  - mantenimiento
+end note
+
+note top of admin
+  **Rol:** Administrador
+  **Permisos:** CONTROL TOTAL
+  - Crear/Modificar/Eliminar Usuarios
+  - Crear/Modificar/Eliminar Docentes
+  - Crear/Modificar/Eliminar Turnos
+  - Crear/Modificar/Eliminar Llaves
+  - Ver reportes y registros
+
+  **NO puede:**
+  - Registrar ingresos/salidas
+    (eso lo hace Bibliotecario)
+end note
+
+@enduml

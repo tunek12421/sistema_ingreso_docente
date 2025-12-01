@@ -1,0 +1,141 @@
+@startuml Casos de Uso - Bibliotecario
+
+left to right direction
+skinparam packageStyle rectangle
+
+actor "Bibliotecario" as bibliotecario
+
+rectangle "Sistema de Ingreso Docente" {
+
+  package "Autenticación" {
+    usecase "Iniciar Sesión" as UC_Login
+  }
+
+  package "Consulta de Docentes" {
+    usecase "Listar Todos\nlos Docentes" as UC_ListarDocentes
+    usecase "Buscar Docente\npor CI" as UC_BuscarDocenteCI
+    usecase "Ver Detalle\nde Docente" as UC_VerDocente
+  }
+
+  package "Gestión de Registros de Ingreso/Salida" {
+    usecase "Registrar Ingreso\nde Docente\n(Retirar Llave)" as UC_RegistrarIngreso
+    usecase "Registrar Salida\nde Docente\n(Devolver Llave)" as UC_RegistrarSalida
+    usecase "Ver Registros\nde Hoy" as UC_VerRegistrosHoy
+    usecase "Consultar Registros\npor Fecha" as UC_ConsultarRegistros
+    usecase "Ver Quién Tiene\nla Llave Actual" as UC_LlaveActual
+  }
+
+  package "Consulta de Turnos" {
+    usecase "Listar Todos\nlos Turnos" as UC_ListarTurnos
+    usecase "Ver Detalle\nde Turno" as UC_VerTurno
+    usecase "Ver Turnos\nde un Docente" as UC_VerTurnosDocente
+  }
+
+  package "Consulta de Llaves" {
+    usecase "Listar Todas\nlas Llaves" as UC_ListarLlaves
+    usecase "Buscar Llave\npor Código" as UC_BuscarLlaveCodigo
+    usecase "Buscar Llave\npor Aula" as UC_BuscarLlaveAula
+    usecase "Ver Detalle\nde Llave" as UC_VerLlave
+    usecase "Ver Estado\nde Llaves" as UC_VerEstadoLlaves
+  }
+
+}
+
+' ==================== RELACIONES ====================
+bibliotecario --> UC_Login
+
+' Docentes - Solo Consulta
+bibliotecario --> UC_ListarDocentes
+bibliotecario --> UC_BuscarDocenteCI
+bibliotecario --> UC_VerDocente
+
+' Registros - Gestión Completa
+bibliotecario --> UC_RegistrarIngreso
+bibliotecario --> UC_RegistrarSalida
+bibliotecario --> UC_VerRegistrosHoy
+bibliotecario --> UC_ConsultarRegistros
+bibliotecario --> UC_LlaveActual
+
+' Turnos - Solo Consulta
+bibliotecario --> UC_ListarTurnos
+bibliotecario --> UC_VerTurno
+bibliotecario --> UC_VerTurnosDocente
+
+' Llaves - Solo Consulta
+bibliotecario --> UC_ListarLlaves
+bibliotecario --> UC_BuscarLlaveCodigo
+bibliotecario --> UC_BuscarLlaveAula
+bibliotecario --> UC_VerLlave
+bibliotecario --> UC_VerEstadoLlaves
+
+' ==================== INCLUDES ====================
+UC_RegistrarIngreso ..> UC_BuscarDocenteCI : <<include>>
+UC_RegistrarIngreso ..> UC_BuscarLlaveCodigo : <<include>>
+UC_RegistrarIngreso ..> UC_VerTurnosDocente : <<include>>
+UC_RegistrarSalida ..> UC_LlaveActual : <<include>>
+
+' ==================== NOTAS ====================
+note right of UC_Login
+  **Endpoint:** POST /login
+  **Entrada:** username, password
+  **Salida:** JWT token
+end note
+
+note right of UC_RegistrarIngreso
+  **Endpoint:** POST /registros/ingreso
+  **Flujo:**
+  1. Docente presenta CI
+  2. Sistema busca docente
+  3. Verifica turno asignado
+  4. Docente solicita llave de aula
+  5. Sistema busca llave por código
+  6. Verifica disponibilidad
+  7. Registra ingreso y marca llave "en uso"
+
+  **Validaciones:**
+  - CI del docente existe
+  - Código de llave existe
+  - Llave está disponible
+  - Docente tiene turno
+  - Hora dentro del turno
+end note
+
+note right of UC_RegistrarSalida
+  **Endpoint:** POST /registros/salida
+  **Flujo:**
+  1. Docente devuelve llave física
+  2. Sistema verifica quién tiene la llave
+  3. Registra hora de devolución
+  4. Marca llave como "disponible"
+
+  **Validaciones:**
+  - Docente tiene llave asignada
+  - Llave corresponde al registro
+end note
+
+note bottom of UC_LlaveActual
+  **Endpoint:** GET /registros/llave-actual
+  Muestra qué docente tiene
+  actualmente cada llave
+end note
+
+note top of bibliotecario
+  **Rol:** Bibliotecario
+  **Responsabilidad Principal:**
+  Gestionar los registros diarios de
+  ingreso y salida de docentes
+
+  **Permisos:**
+  - Consulta de Docentes (solo lectura)
+  - Consulta de Turnos (solo lectura)
+  - Consulta de Llaves (solo lectura)
+  - Registrar ingresos y salidas (CRUD)
+
+  **NO puede:**
+  - Crear/Modificar/Eliminar Docentes
+  - Crear/Modificar/Eliminar Turnos
+  - Crear/Modificar/Eliminar Llaves
+  - Crear/Modificar usuarios del sistema
+end note
+
+@enduml

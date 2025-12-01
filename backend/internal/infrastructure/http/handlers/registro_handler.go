@@ -189,3 +189,13 @@ func (h *RegistroHandler) GetLlaveActual(w http.ResponseWriter, r *http.Request)
 		"llave_id": llaveID,
 	})
 }
+
+// Update permite al Jefe de Carrera editar/corregir registros
+func (h *RegistroHandler) Update(w http.ResponseWriter, r *http.Request) {
+	// Por ahora, solo devolvemos un mensaje indicando que la funcionalidad está en desarrollo
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusNotImplemented)
+	json.NewEncoder(w).Encode(map[string]string{
+		"message": "Funcionalidad de edición de registros en desarrollo",
+	})
+}
