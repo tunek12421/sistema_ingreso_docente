@@ -21,30 +21,36 @@ func NewLlaveHandler(llaveUseCase *usecases.LlaveUseCase) *LlaveHandler {
 func (h *LlaveHandler) GetAll(w http.ResponseWriter, r *http.Request) {
 	llaves, err := h.llaveUseCase.GetAll()
 	if err != nil {
-		http.Error(w, `{"error":"Error obteniendo llaves"}`, http.StatusInternalServerError)
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusInternalServerError)
+		json.NewEncoder(w).Encode(ApiResponse{Error: "Error obteniendo llaves"})
 		return
 	}
 
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(llaves)
+	json.NewEncoder(w).Encode(ApiResponse{Data: llaves})
 }
 
 func (h *LlaveHandler) GetByID(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 	id, err := strconv.Atoi(vars["id"])
 	if err != nil {
-		http.Error(w, `{"error":"ID invalido"}`, http.StatusBadRequest)
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusBadRequest)
+		json.NewEncoder(w).Encode(ApiResponse{Error: "ID inválido"})
 		return
 	}
 
 	llave, err := h.llaveUseCase.GetByID(id)
 	if err != nil {
-		http.Error(w, `{"error":"Llave no encontrada"}`, http.StatusNotFound)
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusNotFound)
+		json.NewEncoder(w).Encode(ApiResponse{Error: "Llave no encontrada"})
 		return
 	}
 
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(llave)
+	json.NewEncoder(w).Encode(ApiResponse{Data: llave})
 }
 
 func (h *LlaveHandler) GetByCodigo(w http.ResponseWriter, r *http.Request) {
@@ -82,42 +88,78 @@ func (h *LlaveHandler) GetByAulaCodigo(w http.ResponseWriter, r *http.Request) {
 func (h *LlaveHandler) Create(w http.ResponseWriter, r *http.Request) {
 	var llave entities.Llave
 	if err := json.NewDecoder(r.Body).Decode(&llave); err != nil {
-		http.Error(w, `{"error":"Datos invalidos"}`, http.StatusBadRequest)
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusBadRequest)
+		json.NewEncoder(w).Encode(ApiResponse{Error: "Datos inválidos"})
 		return
 	}
 
 	if err := h.llaveUseCase.Create(&llave); err != nil {
-		http.Error(w, `{"error":"`+err.Error()+`"}`, http.StatusBadRequest)
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusBadRequest)
+		json.NewEncoder(w).Encode(ApiResponse{Error: err.Error()})
 		return
 	}
 
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusCreated)
-	json.NewEncoder(w).Encode(llave)
+	json.NewEncoder(w).Encode(ApiResponse{Data: llave, Message: "Llave creada exitosamente"})
 }
 
 func (h *LlaveHandler) Update(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 	id, err := strconv.Atoi(vars["id"])
 	if err != nil {
-		http.Error(w, `{"error":"ID invalido"}`, http.StatusBadRequest)
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusBadRequest)
+		json.NewEncoder(w).Encode(ApiResponse{Error: "ID inválido"})
 		return
 	}
 
-	var llave entities.Llave
-	if err := json.NewDecoder(r.Body).Decode(&llave); err != nil {
-		http.Error(w, `{"error":"Datos invalidos"}`, http.StatusBadRequest)
+	// Obtener la llave existente
+	existingLlave, err := h.llaveUseCase.GetByID(id)
+	if err != nil {
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusNotFound)
+		json.NewEncoder(w).Encode(ApiResponse{Error: "Llave no encontrada"})
 		return
 	}
 
-	llave.ID = id
-	if err := h.llaveUseCase.Update(&llave); err != nil {
-		http.Error(w, `{"error":"`+err.Error()+`"}`, http.StatusBadRequest)
+	// Decodificar solo los campos que vienen en el request
+	var updateData map[string]interface{}
+	if err := json.NewDecoder(r.Body).Decode(&updateData); err != nil {
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusBadRequest)
+		json.NewEncoder(w).Encode(ApiResponse{Error: "Datos inválidos"})
+		return
+	}
+
+	// Actualizar solo los campos proporcionados
+	if codigo, ok := updateData["codigo"].(string); ok {
+		existingLlave.Codigo = codigo
+	}
+	if aulaCodigo, ok := updateData["aula_codigo"].(string); ok {
+		existingLlave.AulaCodigo = aulaCodigo
+	}
+	if aulaNombre, ok := updateData["aula_nombre"].(string); ok {
+		existingLlave.AulaNombre = aulaNombre
+	}
+	if estado, ok := updateData["estado"].(string); ok {
+		existingLlave.Estado = entities.EstadoLlave(estado)
+	}
+	if descripcion, ok := updateData["descripcion"].(string); ok {
+		existingLlave.Descripcion = &descripcion
+	}
+
+	if err := h.llaveUseCase.Update(existingLlave); err != nil {
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusBadRequest)
+		json.NewEncoder(w).Encode(ApiResponse{Error: err.Error()})
 		return
 	}
 
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(llave)
+	json.NewEncoder(w).Encode(ApiResponse{Data: existingLlave, Message: "Llave actualizada exitosamente"})
 }
 
 func (h *LlaveHandler) UpdateEstado(w http.ResponseWriter, r *http.Request) {
@@ -150,14 +192,19 @@ func (h *LlaveHandler) Delete(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 	id, err := strconv.Atoi(vars["id"])
 	if err != nil {
-		http.Error(w, `{"error":"ID invalido"}`, http.StatusBadRequest)
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusBadRequest)
+		json.NewEncoder(w).Encode(ApiResponse{Error: "ID inválido"})
 		return
 	}
 
 	if err := h.llaveUseCase.Delete(id); err != nil {
-		http.Error(w, `{"error":"Error eliminando llave"}`, http.StatusInternalServerError)
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusInternalServerError)
+		json.NewEncoder(w).Encode(ApiResponse{Error: "Error eliminando llave"})
 		return
 	}
 
-	w.WriteHeader(http.StatusNoContent)
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(ApiResponse{Message: "Llave eliminada exitosamente"})
 }

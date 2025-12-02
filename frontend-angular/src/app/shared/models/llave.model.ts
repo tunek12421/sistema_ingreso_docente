@@ -1,27 +1,35 @@
-export type EstadoLlave = 'disponible' | 'en_uso' | 'perdida' | 'mantenimiento';
+export type EstadoLlave = 'disponible' | 'en_uso' | 'extraviada' | 'inactiva';
 
 export interface Llave {
   id: number;
-  codigo_llave: string;
+  codigo: string;
   aula_codigo: string;
-  descripcion?: string;
+  aula_nombre: string;
   estado: EstadoLlave;
+  descripcion?: string;
   created_at: string;
   updated_at: string;
 }
 
 export interface LlaveCreate {
-  codigo_llave: string;
+  codigo: string;
   aula_codigo: string;
+  aula_nombre: string;
+  estado: EstadoLlave;
   descripcion?: string;
 }
 
 export interface LlaveUpdate {
-  codigo_llave?: string;
+  codigo?: string;
   aula_codigo?: string;
+  aula_nombre?: string;
+  estado?: EstadoLlave;
   descripcion?: string;
 }
 
-export interface LlaveEstadoUpdate {
-  estado: EstadoLlave;
-}
+export const ESTADOS_LLAVE: { value: EstadoLlave; label: string; color: string }[] = [
+  { value: 'disponible', label: 'Disponible', color: 'green' },
+  { value: 'en_uso', label: 'En Uso', color: 'blue' },
+  { value: 'extraviada', label: 'Extraviada', color: 'red' },
+  { value: 'inactiva', label: 'Inactiva', color: 'gray' }
+];

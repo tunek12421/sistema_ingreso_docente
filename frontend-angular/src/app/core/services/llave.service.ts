@@ -1,7 +1,7 @@
 import { Injectable, inject } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Observable } from 'rxjs';
-import { Llave, LlaveCreate, LlaveUpdate, LlaveEstadoUpdate } from '../../shared/models';
+import { Llave, LlaveCreate, LlaveUpdate } from '../../shared/models/llave.model';
 import { ApiResponse } from '../../shared/models/api-response.model';
 import { environment } from '../../../environments/environment';
 
@@ -20,24 +20,12 @@ export class LlaveService {
     return this.http.get<ApiResponse<Llave>>(`${this.apiUrl}/${id}`);
   }
 
-  getByCodigo(codigo: string): Observable<ApiResponse<Llave>> {
-    return this.http.get<ApiResponse<Llave>>(`${this.apiUrl}/codigo/${codigo}`);
-  }
-
-  getByAulaCodigo(aulaCodigo: string): Observable<ApiResponse<Llave[]>> {
-    return this.http.get<ApiResponse<Llave[]>>(`${this.apiUrl}/aula/${aulaCodigo}`);
-  }
-
   create(llave: LlaveCreate): Observable<ApiResponse<Llave>> {
     return this.http.post<ApiResponse<Llave>>(this.apiUrl, llave);
   }
 
   update(id: number, llave: LlaveUpdate): Observable<ApiResponse<Llave>> {
     return this.http.put<ApiResponse<Llave>>(`${this.apiUrl}/${id}`, llave);
-  }
-
-  updateEstado(id: number, estado: LlaveEstadoUpdate): Observable<ApiResponse<Llave>> {
-    return this.http.patch<ApiResponse<Llave>>(`${this.apiUrl}/${id}/estado`, estado);
   }
 
   delete(id: number): Observable<ApiResponse<void>> {

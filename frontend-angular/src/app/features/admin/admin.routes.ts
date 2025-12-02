@@ -16,6 +16,10 @@ export const ADMIN_ROUTES: Routes = [
       {
         path: 'turnos',
         loadComponent: () => import('./turnos/turnos-list').then(m => m.TurnosList)
+      },
+      {
+        path: 'llaves',
+        loadComponent: () => import('./llaves/llaves-list').then(m => m.LlavesList)
       }
     ]
   }
