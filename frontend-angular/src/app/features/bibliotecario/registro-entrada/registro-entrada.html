@@ -56,6 +56,28 @@
           }
         </div>
 
+        <!-- Selección de Turno -->
+        <div>
+          <label for="turno" class="block text-sm font-medium text-gray-700 mb-2">
+            Turno
+            <span class="text-red-500">*</span>
+          </label>
+          <select
+            id="turno"
+            formControlName="turno_id"
+            class="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
+            [class.border-red-500]="isFieldInvalid('turno_id')"
+          >
+            <option value="">Seleccione un turno</option>
+            @for (turno of turnos(); track turno.id) {
+              <option [value]="turno.id">{{ turno.nombre }} ({{ turno.hora_inicio }} - {{ turno.hora_fin }})</option>
+            }
+          </select>
+          @if (isFieldInvalid('turno_id')) {
+            <p class="mt-1 text-sm text-red-600">Por favor seleccione un turno</p>
+          }
+        </div>
+
         <!-- Selección de Llave -->
         <div>
           <label for="llave" class="block text-sm font-medium text-gray-700 mb-2">
@@ -88,13 +110,17 @@
         </div>
 
         <!-- Resumen de Selección -->
-        @if (registroForm.get('docente_id')?.value && registroForm.get('llave_id')?.value) {
+        @if (registroForm.get('docente_id')?.value && registroForm.get('turno_id')?.value && registroForm.get('llave_id')?.value) {
           <div class="bg-blue-50 border border-blue-200 rounded-lg p-4">
             <h3 class="text-sm font-medium text-blue-900 mb-2">Resumen</h3>
             <div class="space-y-1 text-sm text-blue-800">
               <p>
                 <span class="font-medium">Docente:</span>
                 {{ getDocenteNombre(registroForm.get('docente_id')?.value) }}
+              </p>
+              <p>
+                <span class="font-medium">Turno:</span>
+                {{ getTurnoNombre(registroForm.get('turno_id')?.value) }}
               </p>
               <p>
                 <span class="font-medium">Llave:</span>
@@ -144,6 +170,7 @@
           <p class="font-medium mb-1">Instrucciones:</p>
           <ul class="list-disc list-inside space-y-1">
             <li>Seleccione el docente que recibirá la llave</li>
+            <li>Seleccione el turno correspondiente</li>
             <li>Elija la llave que se va a entregar</li>
             <li>Verifique el resumen antes de confirmar</li>
             <li>El sistema registrará automáticamente la fecha y hora</li>
