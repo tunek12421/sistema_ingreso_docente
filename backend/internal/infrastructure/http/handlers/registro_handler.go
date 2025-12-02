@@ -164,11 +164,77 @@ func (h *RegistroHandler) GetRegistrosHoy(w http.ResponseWriter, r *http.Request
 
 func (h *RegistroHandler) GetLlaveActual(w http.ResponseWriter, r *http.Request) {
 	docenteIDStr := r.URL.Query().Get("docente_id")
+
+	// Si no se proporciona docente_id, devolver todas las llaves actualmente en uso
 	if docenteIDStr == "" {
-		http.Error(w, `{"error":"docente_id es requerido"}`, http.StatusBadRequest)
+		query := `
+			SELECT DISTINCT ON (r_ingreso.docente_id)
+				r_ingreso.id,
+				r_ingreso.llave_id,
+				l.codigo as llave_codigo,
+				l.aula_codigo,
+				r_ingreso.docente_id,
+				CAST(d.documento_identidad AS TEXT) as docente_ci,
+				d.nombre_completo as docente_nombre_completo,
+				r_ingreso.fecha_hora as hora_ingreso
+			FROM registros r_ingreso
+			INNER JOIN llaves l ON r_ingreso.llave_id = l.id
+			INNER JOIN docentes d ON r_ingreso.docente_id = d.id
+			WHERE r_ingreso.tipo = 'ingreso'
+			  AND r_ingreso.llave_id IS NOT NULL
+			  AND NOT EXISTS (
+				  SELECT 1 FROM registros r_salida
+				  WHERE r_salida.docente_id = r_ingreso.docente_id
+					AND r_salida.tipo = 'salida'
+					AND r_salida.fecha_hora > r_ingreso.fecha_hora
+					AND DATE(r_salida.fecha_hora) = DATE(r_ingreso.fecha_hora)
+			  )
+			ORDER BY r_ingreso.docente_id, r_ingreso.fecha_hora DESC
+		`
+
+		rows, err := h.db.Query(query)
+		if err != nil {
+			http.Error(w, `{"error":"Error al consultar registros activos"}`, http.StatusInternalServerError)
+			return
+		}
+		defer rows.Close()
+
+		type LlaveActual struct {
+			LlaveID             int    `json:"llave_id"`
+			LlaveCodigo         string `json:"llave_codigo"`
+			AulaCodigo          string `json:"aula_codigo"`
+			DocenteID           int    `json:"docente_id"`
+			DocenteCI           string `json:"docente_ci"`
+			DocenteNombreCompleto string `json:"docente_nombre_completo"`
+			HoraIngreso         string `json:"hora_ingreso"`
+		}
+
+		var llavesActuales []LlaveActual
+		for rows.Next() {
+			var la LlaveActual
+			var id int
+			err := rows.Scan(
+				&id,
+				&la.LlaveID,
+				&la.LlaveCodigo,
+				&la.AulaCodigo,
+				&la.DocenteID,
+				&la.DocenteCI,
+				&la.DocenteNombreCompleto,
+				&la.HoraIngreso,
+			)
+			if err != nil {
+				continue
+			}
+			llavesActuales = append(llavesActuales, la)
+		}
+
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(llavesActuales)
 		return
 	}
 
+	// Si se proporciona docente_id, devolver la llave actual de ese docente
 	var docenteID int
 	if _, err := fmt.Sscanf(docenteIDStr, "%d", &docenteID); err != nil {
 		http.Error(w, `{"error":"docente_id inválido"}`, http.StatusBadRequest)

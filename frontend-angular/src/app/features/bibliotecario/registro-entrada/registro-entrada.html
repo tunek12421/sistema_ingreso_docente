@@ -1,0 +1,155 @@
+<div class="max-w-3xl mx-auto space-y-6">
+  <!-- Page Header -->
+  <div>
+    <h1 class="text-3xl font-bold text-gray-900">Registrar Entrada</h1>
+    <p class="mt-2 text-sm text-gray-600">Entregar llave a un docente</p>
+  </div>
+
+  <!-- Loading State -->
+  @if (loadingData()) {
+    <div class="flex items-center justify-center h-64">
+      <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-green-600"></div>
+    </div>
+  } @else {
+    <!-- Success Message -->
+    @if (success()) {
+      <div class="bg-green-50 border border-green-200 text-green-700 px-4 py-3 rounded-lg flex items-start">
+        <svg class="h-5 w-5 text-green-600 mr-3 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+        </svg>
+        <p>{{ success() }}</p>
+      </div>
+    }
+
+    <!-- Error Message -->
+    @if (error()) {
+      <div class="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg flex items-start">
+        <svg class="h-5 w-5 text-red-600 mr-3 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+        </svg>
+        <p>{{ error() }}</p>
+      </div>
+    }
+
+    <!-- Form Card -->
+    <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+      <form [formGroup]="registroForm" (ngSubmit)="onSubmit()" class="space-y-6">
+        <!-- Selección de Docente -->
+        <div>
+          <label for="docente" class="block text-sm font-medium text-gray-700 mb-2">
+            Docente
+            <span class="text-red-500">*</span>
+          </label>
+          <select
+            id="docente"
+            formControlName="docente_id"
+            class="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
+            [class.border-red-500]="isFieldInvalid('docente_id')"
+          >
+            <option value="">Seleccione un docente</option>
+            @for (docente of docentes(); track docente.id) {
+              <option [value]="docente.id">{{ docente.nombre }}</option>
+            }
+          </select>
+          @if (isFieldInvalid('docente_id')) {
+            <p class="mt-1 text-sm text-red-600">Por favor seleccione un docente</p>
+          }
+        </div>
+
+        <!-- Selección de Llave -->
+        <div>
+          <label for="llave" class="block text-sm font-medium text-gray-700 mb-2">
+            Llave
+            <span class="text-red-500">*</span>
+          </label>
+          @if (llavesDisponibles().length === 0) {
+            <div class="bg-yellow-50 border border-yellow-200 text-yellow-800 px-4 py-3 rounded-lg">
+              <p class="text-sm">No hay llaves disponibles en este momento</p>
+            </div>
+          } @else {
+            <select
+              id="llave"
+              formControlName="llave_id"
+              class="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
+              [class.border-red-500]="isFieldInvalid('llave_id')"
+            >
+              <option value="">Seleccione una llave</option>
+              @for (llave of llavesDisponibles(); track llave.id) {
+                <option [value]="llave.id">{{ llave.codigo }} - {{ llave.descripcion }}</option>
+              }
+            </select>
+            @if (isFieldInvalid('llave_id')) {
+              <p class="mt-1 text-sm text-red-600">Por favor seleccione una llave</p>
+            }
+          }
+          <p class="mt-2 text-sm text-gray-500">
+            Llaves disponibles: {{ llavesDisponibles().length }}
+          </p>
+        </div>
+
+        <!-- Resumen de Selección -->
+        @if (registroForm.get('docente_id')?.value && registroForm.get('llave_id')?.value) {
+          <div class="bg-blue-50 border border-blue-200 rounded-lg p-4">
+            <h3 class="text-sm font-medium text-blue-900 mb-2">Resumen</h3>
+            <div class="space-y-1 text-sm text-blue-800">
+              <p>
+                <span class="font-medium">Docente:</span>
+                {{ getDocenteNombre(registroForm.get('docente_id')?.value) }}
+              </p>
+              <p>
+                <span class="font-medium">Llave:</span>
+                {{ getLlaveInfo(registroForm.get('llave_id')?.value) }}
+              </p>
+            </div>
+          </div>
+        }
+
+        <!-- Action Buttons -->
+        <div class="flex gap-3 pt-4">
+          <button
+            type="submit"
+            [disabled]="loading() || registroForm.invalid || llavesDisponibles().length === 0"
+            class="flex-1 px-6 py-3 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+          >
+            @if (loading()) {
+              <div class="animate-spin rounded-full h-5 w-5 border-b-2 border-white"></div>
+              <span>Registrando...</span>
+            } @else {
+              <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 16l-4-4m0 0l4-4m-4 4h14m-5 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h7a3 3 0 013 3v1" />
+              </svg>
+              <span>Registrar Entrada</span>
+            }
+          </button>
+
+          <button
+            type="button"
+            (click)="registroForm.reset()"
+            [disabled]="loading()"
+            class="px-6 py-3 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            Limpiar
+          </button>
+        </div>
+      </form>
+    </div>
+
+    <!-- Info Card -->
+    <div class="bg-gray-50 border border-gray-200 rounded-lg p-4">
+      <div class="flex items-start">
+        <svg class="h-5 w-5 text-gray-600 mr-3 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+        </svg>
+        <div class="text-sm text-gray-700">
+          <p class="font-medium mb-1">Instrucciones:</p>
+          <ul class="list-disc list-inside space-y-1">
+            <li>Seleccione el docente que recibirá la llave</li>
+            <li>Elija la llave que se va a entregar</li>
+            <li>Verifique el resumen antes de confirmar</li>
+            <li>El sistema registrará automáticamente la fecha y hora</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+  }
+</div>

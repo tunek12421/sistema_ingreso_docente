@@ -1,0 +1,132 @@
+import { Component, OnInit, signal } from '@angular/core';
+import { CommonModule } from '@angular/common';
+import { FormBuilder, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
+import { Router } from '@angular/router';
+import { RegistroService } from '../../../core/services/registro.service';
+import { LlaveActual } from '../../../shared/models';
+
+@Component({
+  selector: 'app-registro-salida',
+  imports: [CommonModule, ReactiveFormsModule],
+  templateUrl: './registro-salida.html',
+  styleUrl: './registro-salida.css'
+})
+export class RegistroSalida implements OnInit {
+  registroForm: FormGroup;
+  registrosActivos = signal<LlaveActual[]>([]);
+  registroSeleccionado = signal<LlaveActual | null>(null);
+  loading = signal<boolean>(false);
+  loadingData = signal<boolean>(true);
+  error = signal<string>('');
+  success = signal<string>('');
+
+  constructor(
+    private fb: FormBuilder,
+    private registroService: RegistroService,
+    private router: Router
+  ) {
+    this.registroForm = this.fb.group({
+      llave_codigo: ['', Validators.required]
+    });
+  }
+
+  ngOnInit(): void {
+    this.loadRegistrosActivos();
+
+    // Escuchar cambios en el formulario
+    this.registroForm.get('llave_codigo')?.valueChanges.subscribe(codigo => {
+      const registro = this.registrosActivos().find(r => r.llave_codigo === codigo);
+      this.registroSeleccionado.set(registro || null);
+    });
+  }
+
+  loadRegistrosActivos(): void {
+    this.loadingData.set(true);
+    this.error.set('');
+
+    this.registroService.getLlaveActual().subscribe({
+      next: (registros) => {
+        this.registrosActivos.set(registros);
+        this.loadingData.set(false);
+      },
+      error: (err) => {
+        console.error('Error al cargar registros activos:', err);
+        this.error.set('Error al cargar los registros activos');
+        this.loadingData.set(false);
+      }
+    });
+  }
+
+  onSubmit(): void {
+    if (this.registroForm.invalid) {
+      this.registroForm.markAllAsTouched();
+      return;
+    }
+
+    this.loading.set(true);
+    this.error.set('');
+    this.success.set('');
+
+    const request = {
+      llave_codigo: this.registroForm.value.llave_codigo
+    };
+
+    this.registroService.registrarSalida(request).subscribe({
+      next: () => {
+        this.success.set('Salida registrada exitosamente');
+        this.registroForm.reset();
+        this.registroSeleccionado.set(null);
+        this.loading.set(false);
+
+        // Recargar registros activos
+        this.loadRegistrosActivos();
+
+        // Redirigir al dashboard después de 2 segundos
+        setTimeout(() => {
+          this.router.navigate(['/bibliotecario']);
+        }, 2000);
+      },
+      error: (err) => {
+        console.error('Error al registrar salida:', err);
+        this.error.set(
+          err.error?.message || 'Error al registrar la salida. Por favor, intente nuevamente.'
+        );
+        this.loading.set(false);
+      }
+    });
+  }
+
+  getHoraFormat(hora: string): string {
+    try {
+      const date = new Date(hora);
+      return date.toLocaleTimeString('es-BO', {
+        hour: '2-digit',
+        minute: '2-digit'
+      });
+    } catch {
+      return hora;
+    }
+  }
+
+  getTiempoTranscurrido(hora: string): string {
+    try {
+      const entrada = new Date(hora);
+      const ahora = new Date();
+      const diff = ahora.getTime() - entrada.getTime();
+      const horas = Math.floor(diff / (1000 * 60 * 60));
+      const minutos = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
+
+      if (horas > 0) {
+        return `${horas}h ${minutos}m`;
+      }
+      return `${minutos}m`;
+    } catch {
+      return 'N/A';
+    }
+  }
+
+  isFieldInvalid(fieldName: string): boolean {
+    const field = this.registroForm.get(fieldName);
+    return !!(field && field.invalid && (field.dirty || field.touched));
+  }
+}

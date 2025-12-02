@@ -31,6 +31,10 @@ export class RegistroService {
     return this.http.post<Registro>(`${this.apiUrl}/ingreso`, request);
   }
 
+  registrarEntrada(request: { docente_id: number; llave_id: number }): Observable<any> {
+    return this.http.post<any>(`${this.apiUrl}/ingreso`, request);
+  }
+
   registrarSalida(request: RegistroSalidaRequest): Observable<Registro> {
     return this.http.post<Registro>(`${this.apiUrl}/salida`, request);
   }
