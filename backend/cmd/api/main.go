@@ -45,7 +45,7 @@ func main() {
 	// Inicializar handlers
 	authHandler := handlers.NewAuthHandler(authUseCase)
 	usuarioHandler := handlers.NewUsuarioHandler(usuarioUseCase)
-	docenteHandler := handlers.NewDocenteHandler(docenteUseCase)
+	docenteHandler := handlers.NewDocenteHandler(docenteUseCase, usuarioUseCase)
 	registroHandler := handlers.NewRegistroHandler(registroUseCase, docenteUseCase, turnoUseCase, db)
 	turnoHandler := handlers.NewTurnoHandler(turnoUseCase)
 	llaveHandler := handlers.NewLlaveHandler(llaveUseCase)

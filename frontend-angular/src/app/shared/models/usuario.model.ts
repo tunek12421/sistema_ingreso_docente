@@ -4,6 +4,7 @@ export interface Usuario {
   id: number;
   username: string;
   rol: Rol;
+  docente_id?: number;
   nombre_completo?: string;
   email?: string;
   activo: boolean;
@@ -15,6 +16,7 @@ export interface UsuarioCreate {
   username: string;
   password: string;
   rol: Rol;
+  docente_id?: number;
   nombre_completo?: string;
   email?: string;
 }
@@ -23,6 +25,7 @@ export interface UsuarioUpdate {
   username?: string;
   password?: string;
   rol?: Rol;
+  docente_id?: number;
   nombre_completo?: string;
   email?: string;
   activo?: boolean;

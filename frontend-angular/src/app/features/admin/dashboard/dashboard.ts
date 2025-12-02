@@ -42,7 +42,7 @@ export class Dashboard implements OnInit {
     }).subscribe({
       next: (results) => {
         this.totalUsuarios.set(results.usuarios.data?.length || 0);
-        this.totalDocentes.set(results.docentes.data?.length || 0);
+        this.totalDocentes.set(results.docentes?.length || 0);
         this.totalTurnos.set(results.turnos.data?.length || 0);
         this.totalLlaves.set(results.llaves.data?.length || 0);
         this.loading.set(false);

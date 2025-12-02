@@ -2,8 +2,11 @@ package handlers
 
 import (
 	"encoding/json"
+	"fmt"
 	"net/http"
+	"regexp"
 	"strconv"
+	"strings"
 
 	"github.com/gorilla/mux"
 	"github.com/sistema-ingreso-docente/backend/internal/domain/entities"
@@ -12,10 +15,74 @@ import (
 
 type DocenteHandler struct {
 	docenteUseCase *usecases.DocenteUseCase
+	usuarioUseCase *usecases.UsuarioUseCase
 }
 
-func NewDocenteHandler(docenteUseCase *usecases.DocenteUseCase) *DocenteHandler {
-	return &DocenteHandler{docenteUseCase: docenteUseCase}
+func NewDocenteHandler(docenteUseCase *usecases.DocenteUseCase, usuarioUseCase *usecases.UsuarioUseCase) *DocenteHandler {
+	return &DocenteHandler{
+		docenteUseCase: docenteUseCase,
+		usuarioUseCase: usuarioUseCase,
+	}
+}
+
+// generateUsername genera un username a partir del nombre completo
+// Ejemplo: "Juan Pérez García" -> "juan.perez"
+func generateUsername(nombreCompleto string) string {
+	// Convertir a minúsculas y quitar acentos
+	nombre := strings.ToLower(nombreCompleto)
+	nombre = strings.ReplaceAll(nombre, "á", "a")
+	nombre = strings.ReplaceAll(nombre, "é", "e")
+	nombre = strings.ReplaceAll(nombre, "í", "i")
+	nombre = strings.ReplaceAll(nombre, "ó", "o")
+	nombre = strings.ReplaceAll(nombre, "ú", "u")
+	nombre = strings.ReplaceAll(nombre, "ñ", "n")
+
+	// Dividir por espacios y tomar las primeras 2 palabras
+	words := strings.Fields(nombre)
+	if len(words) == 0 {
+		return "docente"
+	}
+
+	if len(words) == 1 {
+		// Solo un nombre, usar solo ese
+		return sanitizeUsername(words[0])
+	}
+
+	// Nombre y apellido separados por punto
+	username := words[0] + "." + words[1]
+	return sanitizeUsername(username)
+}
+
+// sanitizeUsername remueve caracteres no permitidos
+func sanitizeUsername(username string) string {
+	// Solo permitir letras, números, puntos y guiones bajos
+	reg := regexp.MustCompile(`[^a-z0-9._-]+`)
+	return reg.ReplaceAllString(username, "")
+}
+
+// generateUniqueUsername genera un username único verificando disponibilidad
+// Si el username ya existe, agrega un número secuencial (juan.perez2, juan.perez3, etc.)
+func (h *DocenteHandler) generateUniqueUsername(nombreCompleto string) string {
+	baseUsername := generateUsername(nombreCompleto)
+	username := baseUsername
+
+	// Intentar con el username base primero
+	if !h.usuarioUseCase.UsernameExists(username) {
+		return username
+	}
+
+	// Si ya existe, agregar número secuencial
+	counter := 2
+	for counter <= 100 { // Límite de seguridad
+		username = fmt.Sprintf("%s%d", baseUsername, counter)
+		if !h.usuarioUseCase.UsernameExists(username) {
+			return username
+		}
+		counter++
+	}
+
+	// Si llegamos aquí, agregar timestamp como último recurso
+	return fmt.Sprintf("%s_%d", baseUsername, counter)
 }
 
 func (h *DocenteHandler) GetAll(w http.ResponseWriter, r *http.Request) {
@@ -72,9 +139,36 @@ func (h *DocenteHandler) Create(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// Crear el docente
 	if err := h.docenteUseCase.Create(&docente); err != nil {
 		http.Error(w, `{"error":"`+err.Error()+`"}`, http.StatusBadRequest)
 		return
+	}
+
+	// Crear automáticamente el usuario asociado con username único
+	username := h.generateUniqueUsername(docente.NombreCompleto)
+	password := fmt.Sprintf("%d", docente.DocumentoIdentidad) // CI como contraseña inicial
+
+	usuario := &entities.Usuario{
+		Username:       username,
+		Password:       password,
+		Rol:            entities.RolDocente,
+		NombreCompleto: docente.NombreCompleto,
+		Email:          docente.Correo,
+		Activo:         true,
+	}
+
+	// Intentar crear el usuario
+	if err := h.usuarioUseCase.Create(usuario); err != nil {
+		// Si falla la creación del usuario, log pero no falla todo
+		// El docente ya fue creado, solo advertimos
+		fmt.Printf("Advertencia: No se pudo crear usuario para docente %d: %v\n", docente.ID, err)
+	} else {
+		// Actualizar el docente con el usuario_id
+		docente.UsuarioID = &usuario.ID
+		if err := h.docenteUseCase.Update(&docente); err != nil {
+			fmt.Printf("Advertencia: No se pudo vincular usuario %d al docente %d: %v\n", usuario.ID, docente.ID, err)
+		}
 	}
 
 	w.Header().Set("Content-Type", "application/json")

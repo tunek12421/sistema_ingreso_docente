@@ -14,6 +14,10 @@ export const ADMIN_ROUTES: Routes = [
         loadComponent: () => import('./usuarios/usuarios-list/usuarios-list').then(m => m.UsuariosList)
       },
       {
+        path: 'docentes',
+        loadComponent: () => import('./docentes/docentes-list').then(m => m.DocentesList)
+      },
+      {
         path: 'turnos',
         loadComponent: () => import('./turnos/turnos-list').then(m => m.TurnosList)
       },

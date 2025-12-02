@@ -121,3 +121,9 @@ func (uc *UsuarioUseCase) ToggleActive(id int) error {
 
 	return uc.repo.Update(usuario)
 }
+
+// UsernameExists verifica si un username ya está en uso
+func (uc *UsuarioUseCase) UsernameExists(username string) bool {
+	existing, _ := uc.repo.FindByUsername(username)
+	return existing != nil
+}

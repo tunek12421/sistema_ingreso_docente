@@ -1,4 +1,4 @@
-import { Component, OnInit, input, output, effect, OnChanges } from '@angular/core';
+import { Component, OnInit, input, output, effect } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormBuilder, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
 import { Usuario, UsuarioCreate, UsuarioUpdate, Rol } from '../../../../shared/models/usuario.model';
@@ -22,8 +22,8 @@ export class UsuarioForm implements OnInit {
   roles: { value: Rol; label: string }[] = [
     { value: 'administrador', label: 'Administrador' },
     { value: 'jefe_carrera', label: 'Jefe de Carrera' },
-    { value: 'bibliotecario', label: 'Bibliotecario' },
-    { value: 'docente', label: 'Docente' }
+    { value: 'bibliotecario', label: 'Bibliotecario' }
+    // Nota: Los usuarios docentes se crean automáticamente al crear un docente
   ];
 
   constructor(private fb: FormBuilder) {
@@ -57,7 +57,7 @@ export class UsuarioForm implements OnInit {
     this.usuarioForm = this.fb.group({
       username: ['', [Validators.required, Validators.minLength(3)]],
       password: ['', [Validators.required, Validators.minLength(6)]],
-      rol: ['docente', Validators.required],
+      rol: ['administrador', Validators.required],
       nombre_completo: [''],
       email: ['', [Validators.email]]
     });
@@ -67,7 +67,7 @@ export class UsuarioForm implements OnInit {
     this.usuarioForm.reset({
       username: '',
       password: '',
-      rol: 'docente',
+      rol: 'administrador',
       nombre_completo: '',
       email: ''
     });
@@ -92,6 +92,7 @@ export class UsuarioForm implements OnInit {
     this.usuarioForm.get('password')?.clearValidators();
     this.usuarioForm.get('password')?.setValidators([Validators.minLength(6)]);
     this.usuarioForm.get('password')?.updateValueAndValidity();
+
     this.showPassword = false;
   }
 
@@ -113,7 +114,7 @@ export class UsuarioForm implements OnInit {
       return;
     }
 
-    const formValue = this.usuarioForm.value;
+    const formValue = this.usuarioForm.getRawValue();
 
     if (this.isEditMode) {
       const updateData: UsuarioUpdate = {

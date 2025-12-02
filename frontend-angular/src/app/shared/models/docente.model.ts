@@ -1,27 +1,27 @@
 export interface Docente {
   id: number;
-  ci: string;
-  nombres: string;
-  apellidos: string;
-  telefono?: string;
-  email?: string;
+  usuario_id?: number;
+  documento_identidad: number;
+  nombre_completo: string;
+  correo: string;
+  telefono?: number;
   activo: boolean;
   created_at: string;
   updated_at: string;
 }
 
 export interface DocenteCreate {
-  ci: string;
-  nombres: string;
-  apellidos: string;
-  telefono?: string;
-  email?: string;
+  documento_identidad: number;
+  nombre_completo: string;
+  correo: string;
+  telefono?: number;
+  activo?: boolean;
 }
 
 export interface DocenteUpdate {
-  nombres?: string;
-  apellidos?: string;
-  telefono?: string;
-  email?: string;
+  documento_identidad?: number;
+  nombre_completo?: string;
+  correo?: string;
+  telefono?: number;
   activo?: boolean;
 }
