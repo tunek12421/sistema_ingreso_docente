@@ -26,12 +26,14 @@ export class Historial implements OnInit {
 
     this.registroService.getRegistrosHoy().subscribe({
       next: (registros) => {
-        this.registros.set(registros);
+        // Si registros es null o undefined, tratarlo como array vacío
+        this.registros.set(registros || []);
         this.loading.set(false);
       },
       error: (err) => {
         console.error('Error al cargar registros:', err);
         this.error.set('Error al cargar el historial de registros');
+        this.registros.set([]);
         this.loading.set(false);
       }
     });

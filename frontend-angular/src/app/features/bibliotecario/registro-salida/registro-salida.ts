@@ -46,12 +46,14 @@ export class RegistroSalida implements OnInit {
 
     this.registroService.getLlaveActual().subscribe({
       next: (registros) => {
-        this.registrosActivos.set(registros);
+        // Si registros es null o undefined, tratarlo como array vacío
+        this.registrosActivos.set(registros || []);
         this.loadingData.set(false);
       },
       error: (err) => {
         console.error('Error al cargar registros activos:', err);
         this.error.set('Error al cargar los registros activos');
+        this.registrosActivos.set([]);
         this.loadingData.set(false);
       }
     });

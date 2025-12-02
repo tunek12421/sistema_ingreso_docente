@@ -28,12 +28,14 @@ export class LlavesActuales implements OnInit {
 
     this.registroService.getLlaveActual().subscribe({
       next: (registros) => {
-        this.llavesActuales.set(registros);
+        // Si registros es null o undefined, tratarlo como array vacío
+        this.llavesActuales.set(registros || []);
         this.loading.set(false);
       },
       error: (err) => {
         console.error('Error al cargar llaves actuales:', err);
         this.error.set('Error al cargar las llaves actuales');
+        this.llavesActuales.set([]);
         this.loading.set(false);
       }
     });

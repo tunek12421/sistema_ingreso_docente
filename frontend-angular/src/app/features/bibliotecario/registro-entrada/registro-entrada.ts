@@ -84,7 +84,9 @@ export class RegistroEntrada implements OnInit {
           // Obtener llaves en uso
           this.registroService.getLlaveActual().subscribe({
             next: (registros) => {
-              const llavesEnUsoIds = registros.map(r => r.llave_id);
+              // Si registros es null o undefined, tratarlo como array vacío
+              const registrosArray = registros || [];
+              const llavesEnUsoIds = registrosArray.map(r => r.llave_id);
               const disponibles = todasLlaves.filter(
                 (l) => !llavesEnUsoIds.includes(l.id)
               );
