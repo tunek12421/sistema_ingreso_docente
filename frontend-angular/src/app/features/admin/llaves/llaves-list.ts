@@ -196,7 +196,8 @@ export class LlavesList implements OnInit {
           this.loadLlaves();
         },
         error: (err) => {
-          this.showErrorAlert('Error al actualizar llave', err.message || 'Ha ocurrido un error al actualizar la llave.');
+          const errorMessage = err.message || 'Ha ocurrido un error al actualizar la llave.';
+          this.showErrorAlert('Error al actualizar llave', errorMessage);
         }
       });
     } else {
@@ -208,7 +209,8 @@ export class LlavesList implements OnInit {
           this.loadLlaves();
         },
         error: (err) => {
-          this.showErrorAlert('Error al crear llave', err.message || 'Ha ocurrido un error al crear la llave.');
+          const errorMessage = err.message || 'Ha ocurrido un error al crear la llave.';
+          this.showErrorAlert('Error al crear llave', errorMessage);
         }
       });
     }

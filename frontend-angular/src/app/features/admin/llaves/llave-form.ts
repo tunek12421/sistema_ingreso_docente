@@ -76,9 +76,8 @@ export class LlaveForm implements OnInit {
     const tipo = this.llaveForm.get('tipo_aula')?.value;
     const numero = this.llaveForm.get('numero_aula')?.value;
 
-    if (tipo && numero && !this.isEditMode) {
+    if (tipo && numero) {
       const codigo = `${tipo}-${numero}`;
-
       this.llaveForm.patchValue({
         aula_codigo: codigo,
         codigo: codigo

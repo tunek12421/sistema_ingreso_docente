@@ -94,6 +94,15 @@ func (h *LlaveHandler) Create(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// Verificar si ya existe una llave con el mismo código
+	existing, _ := h.llaveUseCase.GetByCodigo(llave.Codigo)
+	if existing != nil {
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusConflict)
+		json.NewEncoder(w).Encode(ApiResponse{Error: "Ya existe una llave con el código " + llave.Codigo})
+		return
+	}
+
 	if err := h.llaveUseCase.Create(&llave); err != nil {
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusBadRequest)
@@ -136,6 +145,16 @@ func (h *LlaveHandler) Update(w http.ResponseWriter, r *http.Request) {
 
 	// Actualizar solo los campos proporcionados
 	if codigo, ok := updateData["codigo"].(string); ok {
+		// Verificar si el nuevo código ya existe en otra llave
+		if codigo != existingLlave.Codigo {
+			duplicate, _ := h.llaveUseCase.GetByCodigo(codigo)
+			if duplicate != nil && duplicate.ID != id {
+				w.Header().Set("Content-Type", "application/json")
+				w.WriteHeader(http.StatusConflict)
+				json.NewEncoder(w).Encode(ApiResponse{Error: "Ya existe una llave con el código " + codigo})
+				return
+			}
+		}
 		existingLlave.Codigo = codigo
 	}
 	if aulaCodigo, ok := updateData["aula_codigo"].(string); ok {
