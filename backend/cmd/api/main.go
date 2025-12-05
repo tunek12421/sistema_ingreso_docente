@@ -4,6 +4,7 @@ import (
 	"log"
 	"net/http"
 	"os"
+	"time"
 
 	"github.com/gorilla/mux"
 	"github.com/joho/godotenv"
@@ -15,6 +16,12 @@ import (
 )
 
 func main() {
+	// Forzar uso de UTC para todas las operaciones de tiempo
+	// Esto asegura timestamps consistentes independientemente de la ubicación del servidor
+	os.Setenv("TZ", "UTC")
+	time.Local = time.UTC
+	log.Println("⏰ Timezone configurado a UTC")
+
 	// Cargar variables de entorno desde archivo .env
 	if err := godotenv.Load("../.env"); err != nil {
 		log.Println("No se encontró archivo .env, usando variables de entorno del sistema")

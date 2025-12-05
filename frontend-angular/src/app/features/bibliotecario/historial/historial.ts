@@ -2,6 +2,7 @@ import { Component, OnInit, signal, computed } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { RegistroService } from '../../../core/services/registro.service';
 import { Registro } from '../../../shared/models';
+import { TimezoneDisplayPipe } from '../../../shared/pipes/timezone-display-pipe';
 
 interface RegistroAgrupado {
   id: number;
@@ -17,7 +18,7 @@ interface RegistroAgrupado {
 
 @Component({
   selector: 'app-historial',
-  imports: [CommonModule],
+  imports: [CommonModule, TimezoneDisplayPipe],
   templateUrl: './historial.html',
   styleUrl: './historial.css'
 })

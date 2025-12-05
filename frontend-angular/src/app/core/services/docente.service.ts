@@ -20,7 +20,15 @@ export class DocenteService {
   }
 
   getByCI(ci: number): Observable<Docente> {
-    return this.http.get<Docente>(`${this.apiUrl}/ci/${ci}`);
+    const url = `${this.apiUrl}/ci/${ci}`;
+    console.log('🌐 DocenteService.getByCI - URL completa:', url);
+    console.log('🌐 DocenteService.getByCI - CI recibido:', ci, 'tipo:', typeof ci);
+    return this.http.get<Docente>(url);
+  }
+
+  searchByCI(ciPartial: string): Observable<Docente[]> {
+    const url = `${this.apiUrl}/search?q=${ciPartial}`;
+    return this.http.get<Docente[]>(url);
   }
 
   create(docente: DocenteCreate): Observable<Docente> {

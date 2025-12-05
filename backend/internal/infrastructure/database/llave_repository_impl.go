@@ -99,6 +99,43 @@ func (r *LlaveRepositoryImpl) FindByAulaCodigo(aulaCodigo string) ([]*entities.L
 	return llaves, nil
 }
 
+func (r *LlaveRepositoryImpl) Search(query string) ([]*entities.Llave, error) {
+	sqlQuery := `SELECT id, codigo, aula_codigo, aula_nombre, estado, descripcion, created_at, updated_at
+	             FROM llaves
+	             WHERE (codigo ILIKE $1 OR aula_codigo ILIKE $1 OR aula_nombre ILIKE $1)
+	             AND estado = 'disponible'
+	             ORDER BY codigo
+	             LIMIT 10`
+
+	searchPattern := "%" + query + "%"
+	rows, err := r.db.Query(sqlQuery, searchPattern)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	llaves := []*entities.Llave{}
+	for rows.Next() {
+		llave := &entities.Llave{}
+		err := rows.Scan(
+			&llave.ID,
+			&llave.Codigo,
+			&llave.AulaCodigo,
+			&llave.AulaNombre,
+			&llave.Estado,
+			&llave.Descripcion,
+			&llave.CreatedAt,
+			&llave.UpdatedAt,
+		)
+		if err != nil {
+			return nil, err
+		}
+		llaves = append(llaves, llave)
+	}
+
+	return llaves, nil
+}
+
 func (r *LlaveRepositoryImpl) FindAll() ([]*entities.Llave, error) {
 	query := `SELECT id, codigo, aula_codigo, aula_nombre, estado, descripcion, created_at, updated_at
 	          FROM llaves ORDER BY codigo`

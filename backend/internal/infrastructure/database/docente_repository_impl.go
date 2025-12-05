@@ -69,6 +69,42 @@ func (r *DocenteRepositoryImpl) FindByCI(ci int64) (*entities.Docente, error) {
 	return docente, nil
 }
 
+func (r *DocenteRepositoryImpl) SearchByCI(ciPartial string) ([]*entities.Docente, error) {
+	query := `SELECT id, usuario_id, documento_identidad, nombre_completo, correo, telefono, activo, created_at, updated_at
+	          FROM docentes
+	          WHERE CAST(documento_identidad AS TEXT) LIKE $1 AND activo = TRUE
+	          ORDER BY documento_identidad
+	          LIMIT 10`
+
+	rows, err := r.db.Query(query, ciPartial+"%")
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	docentes := []*entities.Docente{}
+	for rows.Next() {
+		docente := &entities.Docente{}
+		err := rows.Scan(
+			&docente.ID,
+			&docente.UsuarioID,
+			&docente.DocumentoIdentidad,
+			&docente.NombreCompleto,
+			&docente.Correo,
+			&docente.Telefono,
+			&docente.Activo,
+			&docente.CreatedAt,
+			&docente.UpdatedAt,
+		)
+		if err != nil {
+			return nil, err
+		}
+		docentes = append(docentes, docente)
+	}
+
+	return docentes, nil
+}
+
 func (r *DocenteRepositoryImpl) FindAll() ([]*entities.Docente, error) {
 	query := `SELECT id, usuario_id, documento_identidad, nombre_completo, correo, telefono, activo, created_at, updated_at
 	          FROM docentes WHERE activo = TRUE ORDER BY nombre_completo`

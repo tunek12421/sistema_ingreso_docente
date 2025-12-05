@@ -27,6 +27,13 @@ func (uc *DocenteUseCase) GetByCI(ci int64) (*entities.Docente, error) {
 	return uc.docenteRepo.FindByCI(ci)
 }
 
+func (uc *DocenteUseCase) SearchByCI(ciPartial string) ([]*entities.Docente, error) {
+	if len(ciPartial) < 1 {
+		return []*entities.Docente{}, nil
+	}
+	return uc.docenteRepo.SearchByCI(ciPartial)
+}
+
 func (uc *DocenteUseCase) Create(docente *entities.Docente) error {
 	if docente.DocumentoIdentidad <= 0 {
 		return fmt.Errorf("documento de identidad inválido")

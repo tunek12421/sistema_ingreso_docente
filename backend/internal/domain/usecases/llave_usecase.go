@@ -31,6 +31,13 @@ func (uc *LlaveUseCase) GetByAulaCodigo(aulaCodigo string) ([]*entities.Llave, e
 	return uc.llaveRepo.FindByAulaCodigo(aulaCodigo)
 }
 
+func (uc *LlaveUseCase) Search(query string) ([]*entities.Llave, error) {
+	if len(query) < 1 {
+		return []*entities.Llave{}, nil
+	}
+	return uc.llaveRepo.Search(query)
+}
+
 func (uc *LlaveUseCase) Create(llave *entities.Llave) error {
 	if llave.Codigo == "" {
 		return fmt.Errorf("código requerido")

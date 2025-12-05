@@ -85,6 +85,23 @@ func (h *LlaveHandler) GetByAulaCodigo(w http.ResponseWriter, r *http.Request) {
 	json.NewEncoder(w).Encode(llaves)
 }
 
+func (h *LlaveHandler) Search(w http.ResponseWriter, r *http.Request) {
+	query := r.URL.Query().Get("q")
+	if query == "" {
+		http.Error(w, `{"error":"Parámetro de búsqueda 'q' requerido"}`, http.StatusBadRequest)
+		return
+	}
+
+	llaves, err := h.llaveUseCase.Search(query)
+	if err != nil {
+		http.Error(w, `{"error":"Error buscando llaves"}`, http.StatusInternalServerError)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(llaves)
+}
+
 func (h *LlaveHandler) Create(w http.ResponseWriter, r *http.Request) {
 	var llave entities.Llave
 	if err := json.NewDecoder(r.Body).Decode(&llave); err != nil {

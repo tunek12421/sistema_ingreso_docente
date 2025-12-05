@@ -20,6 +20,11 @@ export class LlaveService {
     return this.http.get<ApiResponse<Llave>>(`${this.apiUrl}/${id}`);
   }
 
+  search(query: string): Observable<Llave[]> {
+    const url = `${this.apiUrl}/search?q=${query}`;
+    return this.http.get<Llave[]>(url);
+  }
+
   create(llave: LlaveCreate): Observable<ApiResponse<Llave>> {
     return this.http.post<ApiResponse<Llave>>(this.apiUrl, llave);
   }

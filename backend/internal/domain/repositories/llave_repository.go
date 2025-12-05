@@ -6,6 +6,7 @@ type LlaveRepository interface {
 	FindByID(id int) (*entities.Llave, error)
 	FindByCodigo(codigo string) (*entities.Llave, error)
 	FindByAulaCodigo(aulaCodigo string) ([]*entities.Llave, error)
+	Search(query string) ([]*entities.Llave, error)
 	FindAll() ([]*entities.Llave, error)
 	Create(llave *entities.Llave) error
 	Update(llave *entities.Llave) error

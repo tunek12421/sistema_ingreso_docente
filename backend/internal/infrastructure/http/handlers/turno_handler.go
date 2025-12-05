@@ -150,3 +150,23 @@ func (h *TurnoHandler) Delete(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(ApiResponse{Message: "Turno eliminado exitosamente"})
 }
+
+// GetTurnoActual devuelve el turno correspondiente a la hora actual de Bolivia
+func (h *TurnoHandler) GetTurnoActual(w http.ResponseWriter, r *http.Request) {
+	turno, err := h.turnoUseCase.GetTurnoActual()
+	if err != nil {
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusInternalServerError)
+		json.NewEncoder(w).Encode(ApiResponse{Error: "Error obteniendo turno actual"})
+		return
+	}
+
+	if turno == nil {
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(ApiResponse{Data: nil, Message: "No hay turno activo en este momento"})
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(ApiResponse{Data: turno})
+}

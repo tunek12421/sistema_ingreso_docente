@@ -132,6 +132,30 @@ func (h *DocenteHandler) GetByCI(w http.ResponseWriter, r *http.Request) {
 	json.NewEncoder(w).Encode(docente)
 }
 
+func (h *DocenteHandler) SearchByCI(w http.ResponseWriter, r *http.Request) {
+	// Obtener el parámetro query string "q"
+	ciPartial := r.URL.Query().Get("q")
+	if ciPartial == "" {
+		http.Error(w, `{"error":"Parámetro de búsqueda 'q' requerido"}`, http.StatusBadRequest)
+		return
+	}
+
+	// Validar que solo contenga dígitos
+	if _, err := strconv.Atoi(ciPartial); err != nil {
+		http.Error(w, `{"error":"El parámetro de búsqueda debe contener solo dígitos"}`, http.StatusBadRequest)
+		return
+	}
+
+	docentes, err := h.docenteUseCase.SearchByCI(ciPartial)
+	if err != nil {
+		http.Error(w, `{"error":"Error buscando docentes"}`, http.StatusInternalServerError)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(docentes)
+}
+
 func (h *DocenteHandler) Create(w http.ResponseWriter, r *http.Request) {
 	var docente entities.Docente
 	if err := json.NewDecoder(r.Body).Decode(&docente); err != nil {

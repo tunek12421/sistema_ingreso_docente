@@ -41,6 +41,7 @@ func Setup(r *mux.Router, h *Handlers) {
 	// ==================== DOCENTES ====================
 	// Lectura - Todos menos Docente
 	api.Handle("/docentes", middleware.RequireRole(entities.RolAdministrador, entities.RolBibliotecario, entities.RolJefeCarrera)(http.HandlerFunc(h.Docente.GetAll))).Methods("GET")
+	api.Handle("/docentes/search", middleware.RequireRole(entities.RolAdministrador, entities.RolBibliotecario, entities.RolJefeCarrera)(http.HandlerFunc(h.Docente.SearchByCI))).Methods("GET")
 	api.Handle("/docentes/{id}", middleware.RequireRole(entities.RolAdministrador, entities.RolBibliotecario, entities.RolJefeCarrera)(http.HandlerFunc(h.Docente.GetByID))).Methods("GET")
 	api.Handle("/docentes/ci/{ci}", middleware.RequireRole(entities.RolAdministrador, entities.RolBibliotecario, entities.RolJefeCarrera)(http.HandlerFunc(h.Docente.GetByCI))).Methods("GET")
 
@@ -65,6 +66,7 @@ func Setup(r *mux.Router, h *Handlers) {
 	// ==================== TURNOS ====================
 	// Lectura - Administrador y Bibliotecario
 	api.Handle("/turnos", middleware.RequireRole(entities.RolAdministrador, entities.RolBibliotecario)(http.HandlerFunc(h.Turno.GetAll))).Methods("GET")
+	api.Handle("/turnos/actual", middleware.RequireRole(entities.RolAdministrador, entities.RolBibliotecario)(http.HandlerFunc(h.Turno.GetTurnoActual))).Methods("GET")
 	api.Handle("/turnos/{id}", middleware.RequireRole(entities.RolAdministrador, entities.RolBibliotecario)(http.HandlerFunc(h.Turno.GetByID))).Methods("GET")
 
 	// Escritura - Solo Administrador
@@ -75,6 +77,7 @@ func Setup(r *mux.Router, h *Handlers) {
 	// ==================== LLAVES ====================
 	// Lectura - Administrador y Bibliotecario
 	api.Handle("/llaves", middleware.RequireRole(entities.RolAdministrador, entities.RolBibliotecario)(http.HandlerFunc(h.Llave.GetAll))).Methods("GET")
+	api.Handle("/llaves/search", middleware.RequireRole(entities.RolAdministrador, entities.RolBibliotecario)(http.HandlerFunc(h.Llave.Search))).Methods("GET")
 	api.Handle("/llaves/{id}", middleware.RequireRole(entities.RolAdministrador, entities.RolBibliotecario)(http.HandlerFunc(h.Llave.GetByID))).Methods("GET")
 	api.Handle("/llaves/codigo/{codigo}", middleware.RequireRole(entities.RolAdministrador, entities.RolBibliotecario)(http.HandlerFunc(h.Llave.GetByCodigo))).Methods("GET")
 	api.Handle("/llaves/aula/{aula_codigo}", middleware.RequireRole(entities.RolAdministrador, entities.RolBibliotecario)(http.HandlerFunc(h.Llave.GetByAulaCodigo))).Methods("GET")

@@ -91,11 +91,11 @@
                   </div>
                 </td>
                 <td class="px-6 py-4 whitespace-nowrap">
-                  <div class="text-sm text-gray-900">{{ getHoraFormat(registro.hora_ingreso) }}</div>
+                  <div class="text-sm text-gray-900">{{ registro.hora_ingreso | timezoneDisplay:'short' }}</div>
                 </td>
                 <td class="px-6 py-4 whitespace-nowrap">
                   <div class="text-sm text-gray-900">
-                    {{ registro.hora_salida ? getHoraFormat(registro.hora_salida) : '-' }}
+                    {{ registro.hora_salida ? (registro.hora_salida | timezoneDisplay:'short') : '-' }}
                   </div>
                 </td>
                 <td class="px-6 py-4 whitespace-nowrap">

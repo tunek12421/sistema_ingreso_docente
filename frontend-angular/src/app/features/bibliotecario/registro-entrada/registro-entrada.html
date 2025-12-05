@@ -34,25 +34,77 @@
     <!-- Form Card -->
     <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
       <form [formGroup]="registroForm" (ngSubmit)="onSubmit()" class="space-y-6">
-        <!-- Selección de Docente -->
+        <!-- Búsqueda por CI -->
         <div>
-          <label for="docente" class="block text-sm font-medium text-gray-700 mb-2">
-            Docente
+          <label for="docente_ci" class="block text-sm font-medium text-gray-700 mb-2">
+            Carnet de Identidad del Docente
             <span class="text-red-500">*</span>
           </label>
-          <select
-            id="docente"
-            formControlName="docente_id"
-            class="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
-            [class.border-red-500]="isFieldInvalid('docente_id')"
-          >
-            <option value="">Seleccione un docente</option>
-            @for (docente of docentes(); track docente.id) {
-              <option [value]="docente.id">{{ docente.nombre }}</option>
+          <div class="relative">
+            <input
+              type="text"
+              id="docente_ci"
+              formControlName="docente_ci"
+              placeholder="Ingrese el CI del docente"
+              (input)="buscarDocente()"
+              (blur)="cerrarSugerencias()"
+              (focus)="registroForm.get('docente_ci')?.value && buscarDocente()"
+              class="w-full px-4 py-2 pr-12 border rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent transition-colors"
+              [class.border-red-500]="isFieldInvalid('docente_ci')"
+              [class.border-green-500]="docenteEncontrado()"
+            >
+            <div class="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none">
+              @if (buscandoDocente()) {
+                <div class="animate-spin rounded-full h-5 w-5 border-b-2 border-green-600"></div>
+              } @else if (docenteEncontrado()) {
+                <svg class="h-5 w-5 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+                </svg>
+              }
+            </div>
+
+            <!-- Sugerencias dropdown -->
+            @if (mostrarSugerencias() && sugerenciasDocentes().length > 0) {
+              <div class="absolute z-10 w-full mt-1 bg-white border border-gray-300 rounded-lg shadow-lg max-h-60 overflow-y-auto">
+                @for (docente of sugerenciasDocentes(); track docente.id) {
+                  <div
+                    (mousedown)="seleccionarDocente(docente)"
+                    class="px-4 py-3 hover:bg-green-50 cursor-pointer border-b border-gray-100 last:border-b-0"
+                  >
+                    <div class="flex items-center justify-between">
+                      <div>
+                        <p class="text-sm font-medium text-gray-900">{{ docente.nombre }}</p>
+                        <p class="text-xs text-gray-600">CI: {{ docente.ci }}</p>
+                      </div>
+                      <svg class="h-5 w-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
+                      </svg>
+                    </div>
+                  </div>
+                }
+              </div>
             }
-          </select>
-          @if (isFieldInvalid('docente_id')) {
-            <p class="mt-1 text-sm text-red-600">Por favor seleccione un docente</p>
+          </div>
+          @if (isFieldInvalid('docente_ci')) {
+            <p class="mt-1 text-sm text-red-600">Por favor ingrese un CI válido (solo números)</p>
+          } @else if (sugerenciasDocentes().length > 0) {
+            <p class="mt-1 text-sm text-green-600">{{ sugerenciasDocentes().length }} coincidencia(s) encontrada(s)</p>
+          }
+
+          <!-- Docente encontrado -->
+          @if (docenteEncontrado()) {
+            <div class="mt-3 p-3 bg-green-50 border border-green-200 rounded-lg">
+              <div class="flex items-start">
+                <svg class="h-5 w-5 text-green-600 mr-2 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+                <div>
+                  <p class="text-sm font-medium text-green-900">Docente encontrado</p>
+                  <p class="text-sm text-green-800">{{ docenteEncontrado()!.nombre }}</p>
+                  <p class="text-xs text-green-700">CI: {{ docenteEncontrado()!.ci }}</p>
+                </div>
+              </div>
+            </div>
           }
         </div>
 
@@ -62,61 +114,125 @@
             Turno
             <span class="text-red-500">*</span>
           </label>
-          <select
-            id="turno"
-            formControlName="turno_id"
-            class="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
-            [class.border-red-500]="isFieldInvalid('turno_id')"
-          >
-            <option value="">Seleccione un turno</option>
-            @for (turno of turnos(); track turno.id) {
-              <option [value]="turno.id">{{ turno.nombre }} ({{ turno.hora_inicio }} - {{ turno.hora_fin }})</option>
+          <div class="relative">
+            <select
+              id="turno"
+              formControlName="turno_id"
+              class="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
+              [class.border-red-500]="isFieldInvalid('turno_id')"
+              [class.border-blue-500]="registroForm.get('turno_id')?.value"
+            >
+              <option value="">Seleccione un turno</option>
+              @for (turno of turnos(); track turno.id) {
+                <option [value]="turno.id">{{ turno.nombre }} ({{ turno.hora_inicio }} - {{ turno.hora_fin }})</option>
+              }
+            </select>
+            @if (registroForm.get('turno_id')?.value) {
+              <div class="absolute inset-y-0 right-0 flex items-center pr-10 pointer-events-none">
+                <svg class="h-5 w-5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+              </div>
             }
-          </select>
+          </div>
           @if (isFieldInvalid('turno_id')) {
             <p class="mt-1 text-sm text-red-600">Por favor seleccione un turno</p>
+          } @else if (registroForm.get('turno_id')?.value) {
+            <p class="mt-1 text-sm text-blue-600">
+              <svg class="inline h-4 w-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+              Turno detectado automáticamente según la hora actual. Puede cambiarlo si es necesario.
+            </p>
           }
         </div>
 
-        <!-- Selección de Llave -->
+        <!-- Búsqueda de Llave -->
         <div>
-          <label for="llave" class="block text-sm font-medium text-gray-700 mb-2">
+          <label for="llave_search" class="block text-sm font-medium text-gray-700 mb-2">
             Llave
             <span class="text-red-500">*</span>
           </label>
-          @if (llavesDisponibles().length === 0) {
-            <div class="bg-yellow-50 border border-yellow-200 text-yellow-800 px-4 py-3 rounded-lg">
-              <p class="text-sm">No hay llaves disponibles en este momento</p>
-            </div>
-          } @else {
-            <select
-              id="llave"
-              formControlName="llave_id"
-              class="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
-              [class.border-red-500]="isFieldInvalid('llave_id')"
+          <div class="relative">
+            <input
+              type="text"
+              id="llave_search"
+              formControlName="llave_search"
+              placeholder="Buscar por código, aula o nombre (ej: L01, LAB-A)"
+              (input)="buscarLlave()"
+              (blur)="cerrarSugerenciasLlaves()"
+              (focus)="registroForm.get('llave_search')?.value && buscarLlave()"
+              class="w-full px-4 py-2 pr-12 border rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent transition-colors"
+              [class.border-red-500]="isFieldInvalid('llave_search')"
+              [class.border-green-500]="llaveEncontrada()"
             >
-              <option value="">Seleccione una llave</option>
-              @for (llave of llavesDisponibles(); track llave.id) {
-                <option [value]="llave.id">{{ llave.codigo }} - {{ llave.descripcion }}</option>
+            <div class="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none">
+              @if (buscandoLlave()) {
+                <div class="animate-spin rounded-full h-5 w-5 border-b-2 border-green-600"></div>
+              } @else if (llaveEncontrada()) {
+                <svg class="h-5 w-5 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+                </svg>
               }
-            </select>
-            @if (isFieldInvalid('llave_id')) {
-              <p class="mt-1 text-sm text-red-600">Por favor seleccione una llave</p>
+            </div>
+
+            <!-- Sugerencias dropdown -->
+            @if (mostrarSugerenciasLlaves() && sugerenciasLlaves().length > 0) {
+              <div class="absolute z-10 w-full mt-1 bg-white border border-gray-300 rounded-lg shadow-lg max-h-60 overflow-y-auto">
+                @for (llave of sugerenciasLlaves(); track llave.id) {
+                  <div
+                    (mousedown)="seleccionarLlave(llave)"
+                    class="px-4 py-3 hover:bg-green-50 cursor-pointer border-b border-gray-100 last:border-b-0"
+                  >
+                    <div class="flex items-center justify-between">
+                      <div>
+                        <p class="text-sm font-medium text-gray-900">{{ llave.codigo }}</p>
+                        <p class="text-xs text-gray-600">{{ llave.descripcion }}</p>
+                      </div>
+                      <svg class="h-5 w-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
+                      </svg>
+                    </div>
+                  </div>
+                }
+              </div>
             }
+          </div>
+          @if (isFieldInvalid('llave_search')) {
+            <p class="mt-1 text-sm text-red-600">Por favor busque y seleccione una llave</p>
+          } @else if (sugerenciasLlaves().length > 0) {
+            <p class="mt-1 text-sm text-green-600">{{ sugerenciasLlaves().length }} llave(s) disponible(s)</p>
           }
-          <p class="mt-2 text-sm text-gray-500">
-            Llaves disponibles: {{ llavesDisponibles().length }}
-          </p>
+
+          <!-- Llave encontrada -->
+          @if (llaveEncontrada()) {
+            <div class="mt-3 p-3 bg-green-50 border border-green-200 rounded-lg">
+              <div class="flex items-start">
+                <svg class="h-5 w-5 text-green-600 mr-2 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+                <div>
+                  <p class="text-sm font-medium text-green-900">Llave seleccionada</p>
+                  <p class="text-sm text-green-800">{{ llaveEncontrada()!.codigo }}</p>
+                  <p class="text-xs text-green-700">{{ llaveEncontrada()!.descripcion }}</p>
+                </div>
+              </div>
+            </div>
+          }
         </div>
 
         <!-- Resumen de Selección -->
-        @if (registroForm.get('docente_id')?.value && registroForm.get('turno_id')?.value && registroForm.get('llave_id')?.value) {
+        @if (docenteEncontrado() && registroForm.get('turno_id')?.value && llaveEncontrada()) {
           <div class="bg-blue-50 border border-blue-200 rounded-lg p-4">
             <h3 class="text-sm font-medium text-blue-900 mb-2">Resumen</h3>
             <div class="space-y-1 text-sm text-blue-800">
               <p>
                 <span class="font-medium">Docente:</span>
-                {{ getDocenteNombre(registroForm.get('docente_id')?.value) }}
+                {{ docenteEncontrado()!.nombre }}
+              </p>
+              <p>
+                <span class="font-medium">CI:</span>
+                {{ docenteEncontrado()!.ci }}
               </p>
               <p>
                 <span class="font-medium">Turno:</span>
@@ -124,7 +240,7 @@
               </p>
               <p>
                 <span class="font-medium">Llave:</span>
-                {{ getLlaveInfo(registroForm.get('llave_id')?.value) }}
+                {{ llaveEncontrada()!.codigo }} - {{ llaveEncontrada()!.descripcion }}
               </p>
             </div>
           </div>
@@ -134,7 +250,7 @@
         <div class="flex gap-3 pt-4">
           <button
             type="submit"
-            [disabled]="loading() || registroForm.invalid || llavesDisponibles().length === 0"
+            [disabled]="loading() || registroForm.invalid || !docenteEncontrado() || !llaveEncontrada()"
             class="flex-1 px-6 py-3 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
           >
             @if (loading()) {
@@ -150,7 +266,7 @@
 
           <button
             type="button"
-            (click)="registroForm.reset()"
+            (click)="registroForm.reset(); docenteEncontrado.set(null); llaveEncontrada.set(null)"
             [disabled]="loading()"
             class="px-6 py-3 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
           >
@@ -169,9 +285,9 @@
         <div class="text-sm text-gray-700">
           <p class="font-medium mb-1">Instrucciones:</p>
           <ul class="list-disc list-inside space-y-1">
-            <li>Seleccione el docente que recibirá la llave</li>
+            <li>Busque al docente por CI (empiece a escribir para ver sugerencias)</li>
             <li>Seleccione el turno correspondiente</li>
-            <li>Elija la llave que se va a entregar</li>
+            <li>Busque la llave por código o nombre de aula (ej: L01, LAB-A)</li>
             <li>Verifique el resumen antes de confirmar</li>
             <li>El sistema registrará automáticamente la fecha y hora</li>
           </ul>

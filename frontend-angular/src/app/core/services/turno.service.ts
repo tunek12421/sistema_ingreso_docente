@@ -20,6 +20,10 @@ export class TurnoService {
     return this.http.get<ApiResponse<Turno>>(`${this.apiUrl}/${id}`);
   }
 
+  getTurnoActual(): Observable<ApiResponse<Turno>> {
+    return this.http.get<ApiResponse<Turno>>(`${this.apiUrl}/actual`);
+  }
+
   create(turno: TurnoCreate): Observable<ApiResponse<Turno>> {
     return this.http.post<ApiResponse<Turno>>(this.apiUrl, turno);
   }

@@ -16,7 +16,7 @@ func NewTurnoRepository(db *sql.DB) *TurnoRepositoryImpl {
 }
 
 func (r *TurnoRepositoryImpl) FindByID(id int) (*entities.Turno, error) {
-	query := `SELECT id, nombre, hora_inicio, hora_fin, descripcion, activo, created_at, updated_at
+	query := `SELECT id, nombre, hora_inicio::TEXT, hora_fin::TEXT, descripcion, activo, created_at, updated_at
 	          FROM turnos WHERE id = $1`
 
 	turno := &entities.Turno{}
@@ -42,8 +42,8 @@ func (r *TurnoRepositoryImpl) FindByID(id int) (*entities.Turno, error) {
 }
 
 func (r *TurnoRepositoryImpl) FindAll() ([]*entities.Turno, error) {
-	query := `SELECT id, nombre, hora_inicio, hora_fin, descripcion, activo, created_at, updated_at
-	          FROM turnos WHERE activo = TRUE ORDER BY hora_inicio`
+	query := `SELECT id, nombre, hora_inicio::TEXT, hora_fin::TEXT, descripcion, activo, created_at, updated_at
+	          FROM turnos ORDER BY hora_inicio`
 
 	rows, err := r.db.Query(query)
 	if err != nil {
