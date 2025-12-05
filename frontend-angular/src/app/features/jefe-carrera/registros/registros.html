@@ -1,0 +1,215 @@
+<div class="space-y-6">
+  <!-- Page Header -->
+  <div class="flex justify-between items-center">
+    <div>
+      <h1 class="text-3xl font-bold text-gray-900">Reportes de Registros</h1>
+      <p class="mt-2 text-sm text-gray-600">Consulta y exporta registros de entradas/salidas</p>
+    </div>
+  </div>
+
+  <!-- Filtros -->
+  <div class="bg-white rounded-lg shadow-sm p-6 border border-gray-200">
+    <h2 class="text-lg font-semibold text-gray-900 mb-4">Filtros</h2>
+    <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
+      <!-- Fecha Inicio -->
+      <div>
+        <label for="fechaInicio" class="block text-sm font-medium text-gray-700 mb-2">
+          Fecha Inicio
+        </label>
+        <input
+          type="date"
+          id="fechaInicio"
+          [(ngModel)]="fechaInicio"
+          class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+        >
+      </div>
+
+      <!-- Fecha Fin -->
+      <div>
+        <label for="fechaFin" class="block text-sm font-medium text-gray-700 mb-2">
+          Fecha Fin
+        </label>
+        <input
+          type="date"
+          id="fechaFin"
+          [(ngModel)]="fechaFin"
+          class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+        >
+      </div>
+
+      <!-- Docente -->
+      <div>
+        <label for="docente" class="block text-sm font-medium text-gray-700 mb-2">
+          Docente
+        </label>
+        <select
+          id="docente"
+          [(ngModel)]="docenteSeleccionado"
+          class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+        >
+          <option value="">Todos los docentes</option>
+          @for (docente of docentes(); track docente.id) {
+            <option [value]="docente.id">{{ docente.nombre_completo }} ({{ docente.documento_identidad }})</option>
+          }
+        </select>
+      </div>
+
+      <!-- Botones -->
+      <div class="flex items-end gap-2">
+        <button
+          (click)="aplicarFiltros()"
+          class="flex-1 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+        >
+          Aplicar
+        </button>
+        <button
+          (click)="limpiarFiltros()"
+          class="px-4 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition-colors"
+        >
+          Limpiar
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Estadísticas -->
+  <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+    <div class="bg-white rounded-lg shadow-sm p-6 border border-gray-200">
+      <p class="text-sm font-medium text-gray-600">Total Registros</p>
+      <p class="mt-2 text-3xl font-semibold text-blue-600">{{ totalRegistros() }}</p>
+    </div>
+    <div class="bg-white rounded-lg shadow-sm p-6 border border-gray-200">
+      <p class="text-sm font-medium text-gray-600">Completados</p>
+      <p class="mt-2 text-3xl font-semibold text-green-600">{{ registrosCompletos() }}</p>
+    </div>
+    <div class="bg-white rounded-lg shadow-sm p-6 border border-gray-200">
+      <p class="text-sm font-medium text-gray-600">En Uso</p>
+      <p class="mt-2 text-3xl font-semibold text-orange-600">{{ registrosIncompletos() }}</p>
+    </div>
+  </div>
+
+  <!-- Error Message -->
+  @if (error()) {
+    <div class="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg">
+      <p>{{ error() }}</p>
+    </div>
+  }
+
+  <!-- Loading State -->
+  @if (loading()) {
+    <div class="flex items-center justify-center h-64">
+      <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+    </div>
+  } @else if (registros().length === 0) {
+    <!-- Empty State -->
+    <div class="text-center py-12 bg-white rounded-lg shadow-sm border border-gray-200">
+      <svg class="mx-auto h-16 w-16 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
+      </svg>
+      <h3 class="mt-4 text-lg font-medium text-gray-900">No hay registros</h3>
+      <p class="mt-2 text-sm text-gray-500">No se encontraron registros para los filtros seleccionados</p>
+    </div>
+  } @else {
+    <!-- Tabla de Registros -->
+    <div class="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
+      <div class="px-6 py-4 border-b border-gray-200 flex justify-between items-center">
+        <h3 class="text-lg font-semibold text-gray-900">Registros</h3>
+        <button
+          (click)="exportarReporte()"
+          class="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors flex items-center gap-2"
+        >
+          <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+          </svg>
+          Exportar CSV
+        </button>
+      </div>
+      <div class="overflow-x-auto">
+        <table class="min-w-full divide-y divide-gray-200">
+          <thead class="bg-gray-50">
+            <tr>
+              <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                Fecha
+              </th>
+              <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                Docente
+              </th>
+              <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                Llave/Aula
+              </th>
+              <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                Turno
+              </th>
+              <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                Ingreso
+              </th>
+              <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                Salida
+              </th>
+              <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                Retraso
+              </th>
+              <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                Estado
+              </th>
+            </tr>
+          </thead>
+          <tbody class="bg-white divide-y divide-gray-200">
+            @for (registro of registros(); track registro.id) {
+              <tr class="hover:bg-gray-50 transition-colors">
+                <td class="px-6 py-4 whitespace-nowrap">
+                  <div class="text-sm font-medium text-gray-900">{{ getFechaFormat(registro.fecha) }}</div>
+                </td>
+                <td class="px-6 py-4 whitespace-nowrap">
+                  <div class="text-sm font-medium text-gray-900">{{ registro.docente_nombre_completo }}</div>
+                  <div class="text-sm text-gray-500">CI: {{ registro.docente_ci }}</div>
+                </td>
+                <td class="px-6 py-4 whitespace-nowrap">
+                  <div class="text-sm font-medium text-gray-900">{{ registro.llave_codigo }}</div>
+                  <div class="text-sm text-gray-500">{{ registro.aula_codigo }}</div>
+                </td>
+                <td class="px-6 py-4 whitespace-nowrap">
+                  <div class="text-sm text-gray-900">{{ registro.turno_nombre }}</div>
+                </td>
+                <td class="px-6 py-4 whitespace-nowrap">
+                  <div class="text-sm text-gray-900">{{ getHoraFormat(registro.hora_ingreso) }}</div>
+                  @if (registro.minutos_retraso && registro.minutos_retraso > 0) {
+                    <div class="text-xs text-red-600">+{{ registro.minutos_retraso }} min</div>
+                  }
+                </td>
+                <td class="px-6 py-4 whitespace-nowrap">
+                  <div class="text-sm text-gray-900">{{ getHoraFormat(registro.hora_salida) }}</div>
+                  @if (registro.minutos_extra && registro.minutos_extra > 0) {
+                    <div class="text-xs text-green-600">+{{ registro.minutos_extra }} min</div>
+                  }
+                </td>
+                <td class="px-6 py-4 whitespace-nowrap">
+                  @if (registro.minutos_retraso && registro.minutos_retraso > 0) {
+                    <span class="px-2 py-1 text-xs font-semibold rounded-full bg-red-100 text-red-800">
+                      {{ registro.minutos_retraso }} min
+                    </span>
+                  } @else {
+                    <span class="px-2 py-1 text-xs font-semibold rounded-full bg-green-100 text-green-800">
+                      A tiempo
+                    </span>
+                  }
+                </td>
+                <td class="px-6 py-4 whitespace-nowrap">
+                  @if (registro.hora_ingreso && registro.hora_salida) {
+                    <span class="px-3 py-1 inline-flex text-xs leading-5 font-semibold rounded-full bg-green-100 text-green-800">
+                      Completado
+                    </span>
+                  } @else {
+                    <span class="px-3 py-1 inline-flex text-xs leading-5 font-semibold rounded-full bg-orange-100 text-orange-800">
+                      En uso
+                    </span>
+                  }
+                </td>
+              </tr>
+            }
+          </tbody>
+        </table>
+      </div>
+    </div>
+  }
+</div>

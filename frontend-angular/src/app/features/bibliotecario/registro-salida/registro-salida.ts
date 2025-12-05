@@ -65,17 +65,35 @@ export class RegistroSalida implements OnInit {
       return;
     }
 
+    const llaveCodigo = this.registroForm.value.llave_codigo?.trim();
+
+    // Buscar el registro activo con esa llave
+    const registroActivo = this.registrosActivos().find(r =>
+      r.llave_codigo.toLowerCase() === llaveCodigo.toLowerCase()
+    );
+
+    if (!registroActivo) {
+      this.error.set('No se encontró ningún registro activo con ese código de llave');
+      return;
+    }
+
     this.loading.set(true);
     this.error.set('');
     this.success.set('');
 
+    // Crear request con los datos del registro activo
     const request = {
-      llave_codigo: this.registroForm.value.llave_codigo
+      ci: Number(registroActivo.docente_ci),
+      turno_id: 1, // Usar turno default ya que LlaveActual no incluye turno_id
+      llave_id: registroActivo.llave_id
     };
+
+    console.log('📤 Enviando registro de salida:', request);
+    console.log('📤 Datos del registro activo:', registroActivo);
 
     this.registroService.registrarSalida(request).subscribe({
       next: () => {
-        this.success.set('Salida registrada exitosamente');
+        this.success.set(`Salida registrada exitosamente para ${registroActivo.docente_nombre_completo}`);
         this.registroForm.reset();
         this.registroSeleccionado.set(null);
         this.loading.set(false);

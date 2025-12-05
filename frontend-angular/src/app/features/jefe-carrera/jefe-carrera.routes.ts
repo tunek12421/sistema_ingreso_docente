@@ -15,6 +15,10 @@ export const JEFE_CARRERA_ROUTES: Routes = [
       {
         path: 'docentes',
         loadComponent: () => import('../admin/docentes/docentes-list').then(m => m.DocentesList)
+      },
+      {
+        path: 'registros',
+        loadComponent: () => import('./registros/registros').then(m => m.JefeCarreraRegistros)
       }
     ]
   }

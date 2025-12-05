@@ -99,16 +99,52 @@ func (h *RegistroHandler) GetByFecha(w http.ResponseWriter, r *http.Request) {
 		fechaStr = time.Now().Format("2006-01-02")
 	}
 
-	fecha, err := time.Parse("2006-01-02", fechaStr)
+	_, err := time.Parse("2006-01-02", fechaStr)
 	if err != nil {
 		http.Error(w, `{"error":"Fecha inválida"}`, http.StatusBadRequest)
 		return
 	}
 
-	registros, err := h.registroUseCase.GetByFecha(fecha)
+	// Consulta directa con JOINS para obtener toda la información (similar a GetRegistrosHoy)
+	query := `
+		SELECT
+			r.id, r.docente_id, d.nombre_completo as docente_nombre, d.documento_identidad as docente_ci,
+			r.turno_id, t.nombre as turno_nombre,
+			r.llave_id, l.codigo as llave_codigo, l.aula_codigo, l.aula_nombre,
+			r.tipo, r.fecha_hora, r.minutos_retraso, r.minutos_extra, r.es_excepcional
+		FROM registros r
+		INNER JOIN docentes d ON r.docente_id = d.id
+		INNER JOIN turnos t ON r.turno_id = t.id
+		LEFT JOIN llaves l ON r.llave_id = l.id
+		WHERE DATE(r.fecha_hora) = $1
+		ORDER BY r.fecha_hora DESC
+	`
+
+	rows, err := h.db.Query(query, fechaStr)
 	if err != nil {
 		http.Error(w, `{"error":"Error obteniendo registros"}`, http.StatusInternalServerError)
 		return
+	}
+	defer rows.Close()
+
+	var registros []dto.RegistroHoyResponse
+	for rows.Next() {
+		var reg dto.RegistroHoyResponse
+		err := rows.Scan(
+			&reg.ID, &reg.DocenteID, &reg.DocenteNombre, &reg.DocenteCI,
+			&reg.TurnoID, &reg.TurnoNombre,
+			&reg.LlaveID, &reg.LlaveCodigo, &reg.AulaCodigo, &reg.AulaNombre,
+			&reg.Tipo, &reg.FechaHora, &reg.MinutosRetraso, &reg.MinutosExtra, &reg.EsExcepcional,
+		)
+		if err != nil {
+			http.Error(w, `{"error":"Error procesando registros"}`, http.StatusInternalServerError)
+			return
+		}
+		registros = append(registros, reg)
+	}
+
+	if len(registros) == 0 {
+		registros = []dto.RegistroHoyResponse{}
 	}
 
 	w.Header().Set("Content-Type", "application/json")
@@ -168,7 +204,7 @@ func (h *RegistroHandler) GetLlaveActual(w http.ResponseWriter, r *http.Request)
 	// Si no se proporciona docente_id, devolver todas las llaves actualmente en uso
 	if docenteIDStr == "" {
 		query := `
-			SELECT DISTINCT ON (r_ingreso.docente_id)
+			SELECT DISTINCT ON (r_ingreso.llave_id)
 				r_ingreso.id,
 				r_ingreso.llave_id,
 				l.codigo as llave_codigo,
@@ -184,12 +220,12 @@ func (h *RegistroHandler) GetLlaveActual(w http.ResponseWriter, r *http.Request)
 			  AND r_ingreso.llave_id IS NOT NULL
 			  AND NOT EXISTS (
 				  SELECT 1 FROM registros r_salida
-				  WHERE r_salida.docente_id = r_ingreso.docente_id
+				  WHERE r_salida.llave_id = r_ingreso.llave_id
+					AND r_salida.docente_id = r_ingreso.docente_id
 					AND r_salida.tipo = 'salida'
 					AND r_salida.fecha_hora > r_ingreso.fecha_hora
-					AND DATE(r_salida.fecha_hora) = DATE(r_ingreso.fecha_hora)
 			  )
-			ORDER BY r_ingreso.docente_id, r_ingreso.fecha_hora DESC
+			ORDER BY r_ingreso.llave_id, r_ingreso.fecha_hora DESC
 		`
 
 		rows, err := h.db.Query(query)

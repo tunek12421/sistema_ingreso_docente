@@ -1,19 +1,26 @@
 export interface Registro {
   id: number;
   docente_id: number;
-  docente_ci?: string;
+  docente_ci?: number | string;
+  docente_nombre?: string;
   docente_nombre_completo?: string;
   llave_id: number;
   llave_codigo?: string;
   aula_codigo?: string;
+  aula_nombre?: string;
   turno_id?: number;
   turno_nombre?: string;
-  fecha: string;
-  hora_ingreso: string;
+  tipo: 'ingreso' | 'salida';
+  fecha_hora: string;
+  fecha?: string;
+  hora_ingreso?: string;
   hora_salida?: string;
+  minutos_retraso?: number;
+  minutos_extra?: number;
+  es_excepcional?: boolean;
   observaciones?: string;
-  created_at: string;
-  updated_at: string;
+  created_at?: string;
+  updated_at?: string;
 }
 
 export interface RegistroIngresoRequest {
@@ -24,7 +31,9 @@ export interface RegistroIngresoRequest {
 }
 
 export interface RegistroSalidaRequest {
-  llave_codigo: string;
+  ci: number;
+  turno_id?: number;
+  llave_id?: number;
   observaciones?: string;
 }
 
