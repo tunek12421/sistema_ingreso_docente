@@ -3,6 +3,7 @@ import { RouterModule } from '@angular/router';
 import { CommonModule } from '@angular/common';
 import { DocenteService } from '../../../core/services/docente.service';
 import { RegistroService } from '../../../core/services/registro.service';
+import { Registro } from '../../../shared/models';
 import { forkJoin } from 'rxjs';
 
 @Component({
@@ -38,8 +39,9 @@ export class JefeCarreraDashboard implements OnInit {
         this.totalDocentes.set(results.docentes?.length || 0);
         this.docentesActivos.set(results.docentes?.filter(d => d.activo)?.length || 0);
 
-        // Registros de hoy
-        this.totalRegistrosHoy.set(results.registrosHoy?.length || 0);
+        // Registros de hoy - agrupar registros físicos en lógicos
+        const registrosAgrupados = this.agruparRegistros(results.registrosHoy || []);
+        this.totalRegistrosHoy.set(registrosAgrupados);
 
         this.loading.set(false);
       },
@@ -47,5 +49,25 @@ export class JefeCarreraDashboard implements OnInit {
         this.loading.set(false);
       }
     });
+  }
+
+  private agruparRegistros(registros: Registro[]): number {
+    const grouped = new Map<string, boolean>();
+
+    registros.forEach(reg => {
+      const fecha = this.extractDate(reg.fecha_hora);
+      const key = `${reg.docente_id}-${reg.llave_id}-${fecha}`;
+      grouped.set(key, true);
+    });
+
+    return grouped.size;
+  }
+
+  private extractDate(fechaHora: string): string {
+    try {
+      return fechaHora.split('T')[0];
+    } catch {
+      return fechaHora;
+    }
   }
 }
