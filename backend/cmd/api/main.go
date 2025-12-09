@@ -56,14 +56,16 @@ func main() {
 	registroHandler := handlers.NewRegistroHandler(registroUseCase, docenteUseCase, turnoUseCase, db)
 	turnoHandler := handlers.NewTurnoHandler(turnoUseCase)
 	llaveHandler := handlers.NewLlaveHandler(llaveUseCase)
+	reconocimientoHandler := handlers.NewReconocimientoHandler(docenteRepo)
 
 	handlersGroup := &routes.Handlers{
-		Auth:     authHandler,
-		Usuario:  usuarioHandler,
-		Docente:  docenteHandler,
-		Registro: registroHandler,
-		Turno:    turnoHandler,
-		Llave:    llaveHandler,
+		Auth:           authHandler,
+		Usuario:        usuarioHandler,
+		Docente:        docenteHandler,
+		Registro:       registroHandler,
+		Turno:          turnoHandler,
+		Llave:          llaveHandler,
+		Reconocimiento: reconocimientoHandler,
 	}
 
 	// Configurar router

@@ -2,6 +2,7 @@ package database
 
 import (
 	"database/sql"
+	"encoding/json"
 	"fmt"
 
 	"github.com/sistema-ingreso-docente/backend/internal/domain/entities"
@@ -16,7 +17,7 @@ func NewDocenteRepository(db *sql.DB) *DocenteRepositoryImpl {
 }
 
 func (r *DocenteRepositoryImpl) FindByID(id int) (*entities.Docente, error) {
-	query := `SELECT id, usuario_id, documento_identidad, nombre_completo, correo, telefono, activo, created_at, updated_at
+	query := `SELECT id, usuario_id, documento_identidad, nombre_completo, correo, telefono, activo, face_descriptors, created_at, updated_at
 	          FROM docentes WHERE id = $1`
 
 	docente := &entities.Docente{}
@@ -28,6 +29,7 @@ func (r *DocenteRepositoryImpl) FindByID(id int) (*entities.Docente, error) {
 		&docente.Correo,
 		&docente.Telefono,
 		&docente.Activo,
+		&docente.FaceDescriptors,
 		&docente.CreatedAt,
 		&docente.UpdatedAt,
 	)
@@ -43,7 +45,7 @@ func (r *DocenteRepositoryImpl) FindByID(id int) (*entities.Docente, error) {
 }
 
 func (r *DocenteRepositoryImpl) FindByCI(ci int64) (*entities.Docente, error) {
-	query := `SELECT id, usuario_id, documento_identidad, nombre_completo, correo, telefono, activo, created_at, updated_at
+	query := `SELECT id, usuario_id, documento_identidad, nombre_completo, correo, telefono, activo, face_descriptors, created_at, updated_at
 	          FROM docentes WHERE documento_identidad = $1`
 
 	docente := &entities.Docente{}
@@ -55,6 +57,7 @@ func (r *DocenteRepositoryImpl) FindByCI(ci int64) (*entities.Docente, error) {
 		&docente.Correo,
 		&docente.Telefono,
 		&docente.Activo,
+		&docente.FaceDescriptors,
 		&docente.CreatedAt,
 		&docente.UpdatedAt,
 	)
@@ -70,7 +73,7 @@ func (r *DocenteRepositoryImpl) FindByCI(ci int64) (*entities.Docente, error) {
 }
 
 func (r *DocenteRepositoryImpl) SearchByCI(ciPartial string) ([]*entities.Docente, error) {
-	query := `SELECT id, usuario_id, documento_identidad, nombre_completo, correo, telefono, activo, created_at, updated_at
+	query := `SELECT id, usuario_id, documento_identidad, nombre_completo, correo, telefono, activo, face_descriptors, created_at, updated_at
 	          FROM docentes
 	          WHERE CAST(documento_identidad AS TEXT) LIKE $1 AND activo = TRUE
 	          ORDER BY documento_identidad
@@ -93,6 +96,7 @@ func (r *DocenteRepositoryImpl) SearchByCI(ciPartial string) ([]*entities.Docent
 			&docente.Correo,
 			&docente.Telefono,
 			&docente.Activo,
+			&docente.FaceDescriptors,
 			&docente.CreatedAt,
 			&docente.UpdatedAt,
 		)
@@ -106,7 +110,7 @@ func (r *DocenteRepositoryImpl) SearchByCI(ciPartial string) ([]*entities.Docent
 }
 
 func (r *DocenteRepositoryImpl) FindAll() ([]*entities.Docente, error) {
-	query := `SELECT id, usuario_id, documento_identidad, nombre_completo, correo, telefono, activo, created_at, updated_at
+	query := `SELECT id, usuario_id, documento_identidad, nombre_completo, correo, telefono, activo, face_descriptors, created_at, updated_at
 	          FROM docentes WHERE activo = TRUE ORDER BY nombre_completo`
 
 	rows, err := r.db.Query(query)
@@ -126,6 +130,7 @@ func (r *DocenteRepositoryImpl) FindAll() ([]*entities.Docente, error) {
 			&docente.Correo,
 			&docente.Telefono,
 			&docente.Activo,
+			&docente.FaceDescriptors,
 			&docente.CreatedAt,
 			&docente.UpdatedAt,
 		)
@@ -171,6 +176,72 @@ func (r *DocenteRepositoryImpl) Update(docente *entities.Docente) error {
 
 func (r *DocenteRepositoryImpl) Delete(id int) error {
 	query := `UPDATE docentes SET activo = FALSE WHERE id = $1`
+	_, err := r.db.Exec(query, id)
+	return err
+}
+
+func (r *DocenteRepositoryImpl) AddFaceDescriptor(id int, descriptorJSON string) error {
+	query := `UPDATE docentes
+	          SET face_descriptors = COALESCE(face_descriptors, '[]'::jsonb) || $1::jsonb,
+	              updated_at = CURRENT_TIMESTAMP
+	          WHERE id = $2`
+	_, err := r.db.Exec(query, descriptorJSON, id)
+	return err
+}
+
+func (r *DocenteRepositoryImpl) GetFaceDescriptors(id int) ([]string, error) {
+	query := `SELECT COALESCE(face_descriptors::text, '[]') FROM docentes WHERE id = $1`
+
+	var descriptorsJSON string
+	err := r.db.QueryRow(query, id).Scan(&descriptorsJSON)
+	if err == sql.ErrNoRows {
+		return []string{}, nil
+	}
+	if err != nil {
+		return nil, err
+	}
+
+	// Si es un array vacío o nulo, retornar array vacío
+	if descriptorsJSON == "" || descriptorsJSON == "[]" || descriptorsJSON == "null" {
+		return []string{}, nil
+	}
+
+	// Los descriptores están guardados como un array de objetos JSON
+	// Necesitamos retornar cada objeto completo como string
+	var rawDescriptors []json.RawMessage
+	err = json.Unmarshal([]byte(descriptorsJSON), &rawDescriptors)
+	if err != nil {
+		return []string{}, nil
+	}
+
+	// Convertir cada RawMessage a string
+	descriptors := make([]string, len(rawDescriptors))
+	for i, raw := range rawDescriptors {
+		descriptors[i] = string(raw)
+	}
+
+	return descriptors, nil
+}
+
+func (r *DocenteRepositoryImpl) RemoveFaceDescriptor(id int, index int) error {
+	// Usar jsonb_set con NULL para eliminar un elemento específico del array
+	query := `UPDATE docentes
+	          SET face_descriptors = (
+	              SELECT jsonb_agg(value)
+	              FROM jsonb_array_elements(COALESCE(face_descriptors, '[]'::jsonb)) WITH ORDINALITY arr(value, idx)
+	              WHERE idx != $2 + 1
+	          ),
+	          updated_at = CURRENT_TIMESTAMP
+	          WHERE id = $1`
+	_, err := r.db.Exec(query, id, index)
+	return err
+}
+
+func (r *DocenteRepositoryImpl) ClearFaceDescriptors(id int) error {
+	query := `UPDATE docentes
+	          SET face_descriptors = '[]'::jsonb,
+	              updated_at = CURRENT_TIMESTAMP
+	          WHERE id = $1`
 	_, err := r.db.Exec(query, id)
 	return err
 }

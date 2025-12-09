@@ -10,12 +10,13 @@ import (
 )
 
 type Handlers struct {
-	Auth     *handlers.AuthHandler
-	Usuario  *handlers.UsuarioHandler
-	Docente  *handlers.DocenteHandler
-	Registro *handlers.RegistroHandler
-	Turno    *handlers.TurnoHandler
-	Llave    *handlers.LlaveHandler
+	Auth           *handlers.AuthHandler
+	Usuario        *handlers.UsuarioHandler
+	Docente        *handlers.DocenteHandler
+	Registro       *handlers.RegistroHandler
+	Turno          *handlers.TurnoHandler
+	Llave          *handlers.LlaveHandler
+	Reconocimiento *handlers.ReconocimientoHandler
 }
 
 func Setup(r *mux.Router, h *Handlers) {
@@ -87,4 +88,17 @@ func Setup(r *mux.Router, h *Handlers) {
 	api.Handle("/llaves/{id}", middleware.RequireRole(entities.RolAdministrador)(http.HandlerFunc(h.Llave.Update))).Methods("PUT")
 	api.Handle("/llaves/{id}", middleware.RequireRole(entities.RolAdministrador)(http.HandlerFunc(h.Llave.Delete))).Methods("DELETE")
 	api.Handle("/llaves/{id}/estado", middleware.RequireRole(entities.RolAdministrador)(http.HandlerFunc(h.Llave.UpdateEstado))).Methods("PATCH")
+
+	// ==================== RECONOCIMIENTO FACIAL ====================
+	// Detectar rostro - Administrador y Bibliotecario
+	api.Handle("/reconocimiento/detectar", middleware.RequireRole(entities.RolAdministrador, entities.RolBibliotecario)(http.HandlerFunc(h.Reconocimiento.DetectarRostro))).Methods("POST")
+
+	// Identificar docente por rostro - Administrador y Bibliotecario
+	api.Handle("/reconocimiento/identificar", middleware.RequireRole(entities.RolAdministrador, entities.RolBibliotecario)(http.HandlerFunc(h.Reconocimiento.IdentificarDocente))).Methods("POST")
+
+	// Gestión de rostros de docentes - Solo Administrador
+	api.Handle("/docentes/{id}/rostro", middleware.RequireRole(entities.RolAdministrador)(http.HandlerFunc(h.Reconocimiento.RegistrarRostroDocente))).Methods("POST")
+	api.Handle("/docentes/{id}/rostro", middleware.RequireRole(entities.RolAdministrador)(http.HandlerFunc(h.Reconocimiento.ObtenerDescriptoresDocente))).Methods("GET")
+	api.Handle("/docentes/{id}/rostro/{index}", middleware.RequireRole(entities.RolAdministrador)(http.HandlerFunc(h.Reconocimiento.EliminarDescriptorDocente))).Methods("DELETE")
+	api.Handle("/docentes/{id}/rostro", middleware.RequireRole(entities.RolAdministrador)(http.HandlerFunc(h.Reconocimiento.LimpiarDescriptoresDocente))).Methods("DELETE")
 }

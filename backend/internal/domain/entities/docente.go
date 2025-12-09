@@ -10,6 +10,7 @@ type Docente struct {
 	Correo              string    `json:"correo"`
 	Telefono            *int64    `json:"telefono,omitempty"`
 	Activo              bool      `json:"activo"`
+	FaceDescriptors     *string   `json:"face_descriptors,omitempty"`
 	CreatedAt           time.Time `json:"created_at"`
 	UpdatedAt           time.Time `json:"updated_at"`
 }

@@ -6,8 +6,10 @@ import { DocenteService } from '../../../core/services/docente.service';
 import { LlaveService } from '../../../core/services/llave.service';
 import { RegistroService } from '../../../core/services/registro.service';
 import { TurnoService } from '../../../core/services/turno.service';
+import { ReconocimientoService } from '../../../core/services/reconocimiento.service';
 import { Turno } from '../../../shared/models';
 import { debounceTime, distinctUntilChanged, Subject, takeUntil, switchMap } from 'rxjs';
+import { WebcamCaptureComponent } from '../../../shared/components/webcam-capture/webcam-capture.component';
 
 interface DocenteInfo {
   id: number;
@@ -23,7 +25,7 @@ interface LlaveInfo {
 
 @Component({
   selector: 'app-registro-entrada',
-  imports: [CommonModule, ReactiveFormsModule],
+  imports: [CommonModule, ReactiveFormsModule, WebcamCaptureComponent],
   templateUrl: './registro-entrada.html',
   styleUrl: './registro-entrada.css'
 })
@@ -44,10 +46,14 @@ export class RegistroEntrada implements OnInit, OnDestroy {
   loadingData = signal<boolean>(true);
   error = signal<string>('');
   success = signal<string>('');
+  mostrarWebcam = signal<boolean>(false);
+  reconociendoRostro = signal<boolean>(false);
+  ultimoReconocimientoExitoso = signal<number>(0); // Timestamp del último reconocimiento exitoso
 
   private destroy$ = new Subject<void>();
   private ciSearchSubject$ = new Subject<string>();
   private llaveSearchSubject$ = new Subject<string>();
+  private isProcessingFrame = false; // Flag para evitar procesar múltiples frames simultáneamente
 
   constructor(
     private fb: FormBuilder,
@@ -55,6 +61,7 @@ export class RegistroEntrada implements OnInit, OnDestroy {
     private llaveService: LlaveService,
     private registroService: RegistroService,
     private turnoService: TurnoService,
+    private reconocimientoService: ReconocimientoService,
     private router: Router
   ) {
     this.registroForm = this.fb.group({
@@ -367,5 +374,129 @@ export class RegistroEntrada implements OnInit, OnDestroy {
   isFieldInvalid(fieldName: string): boolean {
     const field = this.registroForm.get(fieldName);
     return !!(field && field.invalid && (field.dirty || field.touched));
+  }
+
+  // ==================== RECONOCIMIENTO FACIAL ====================
+
+  abrirWebcam() {
+    console.log('[RegistroEntrada] Abriendo webcam en modo continuo');
+    this.mostrarWebcam.set(true);
+    this.error.set('');
+    this.success.set('');
+    this.isProcessingFrame = false;
+    this.ultimoReconocimientoExitoso.set(0);
+  }
+
+  cerrarWebcam() {
+    console.log('[RegistroEntrada] Cerrando webcam');
+    this.mostrarWebcam.set(false);
+    this.isProcessingFrame = false;
+  }
+
+  // Método para captura manual (modo original, no usado en modo continuo)
+  onImageCaptured(imageFile: File) {
+    console.log('[RegistroEntrada] Imagen capturada manualmente');
+    this.procesarFrame(imageFile);
+  }
+
+  // Nuevo método para procesar frames en modo continuo
+  onFrameCaptured(frameFile: File) {
+    // Evitar procesar múltiples frames simultáneamente
+    if (this.isProcessingFrame) {
+      console.log('[RegistroEntrada] ⏭ Frame omitido (ya hay uno en proceso)');
+      return;
+    }
+
+    // Si ya se identificó exitosamente hace menos de 5 segundos, no procesar más
+    const ahora = Date.now();
+    const tiempoDesdeUltimoExito = ahora - this.ultimoReconocimientoExitoso();
+    if (this.ultimoReconocimientoExitoso() > 0 && tiempoDesdeUltimoExito < 5000) {
+      console.log(`[RegistroEntrada] ⏭ Frame omitido (identificación reciente hace ${(tiempoDesdeUltimoExito / 1000).toFixed(1)}s)`);
+      return;
+    }
+
+    console.log('[RegistroEntrada] 📸 Procesando nuevo frame capturado automáticamente');
+    this.procesarFrame(frameFile);
+  }
+
+  private procesarFrame(imageFile: File) {
+    this.isProcessingFrame = true;
+    this.reconociendoRostro.set(true);
+
+    console.log('[RegistroEntrada] → Enviando frame al servicio de reconocimiento');
+    console.log('[RegistroEntrada]   Archivo:', imageFile.name, 'Tamaño:', (imageFile.size / 1024).toFixed(2), 'KB');
+
+    this.reconocimientoService.identificarDocente(imageFile).subscribe({
+      next: (response) => {
+        console.log('[RegistroEntrada] ← Respuesta recibida del servicio:', response);
+        this.reconociendoRostro.set(false);
+        this.isProcessingFrame = false;
+
+        if (response.data) {
+          // Docente identificado exitosamente
+          const docente = response.data;
+          console.log('[RegistroEntrada] ✓ Docente identificado:', docente);
+          console.log('[RegistroEntrada]   Nombre:', docente.nombre_completo);
+          console.log('[RegistroEntrada]   CI:', docente.documento_identidad);
+          console.log('[RegistroEntrada]   Coincidencias:', `${docente.match_count}/${docente.total_descriptors} (${(docente.match_count/docente.total_descriptors*100).toFixed(1)}%)`);
+          console.log('[RegistroEntrada]   Mejor distancia:', docente.distance);
+
+          // Marcar timestamp del último reconocimiento exitoso
+          this.ultimoReconocimientoExitoso.set(Date.now());
+
+          // Actualizar el formulario con el CI del docente
+          this.registroForm.patchValue({
+            docente_ci: docente.documento_identidad.toString()
+          });
+          console.log('[RegistroEntrada] ✓ Formulario actualizado con CI:', docente.documento_identidad);
+
+          // Buscar el docente completo
+          console.log('[RegistroEntrada] → Buscando información completa del docente');
+          this.docenteService.searchByCI(docente.documento_identidad.toString()).subscribe({
+            next: (docentes) => {
+              console.log('[RegistroEntrada] ← Información completa recibida:', docentes);
+              if (docentes && docentes.length > 0) {
+                const docenteCompleto = docentes[0];
+                this.docenteEncontrado.set({
+                  id: docenteCompleto.id,
+                  nombre: docenteCompleto.nombre_completo,
+                  ci: docenteCompleto.documento_identidad
+                });
+                this.mostrarSugerencias.set(false);
+                console.log('[RegistroEntrada] ✓ Docente establecido en el estado');
+              }
+            },
+            error: (err) => {
+              console.error('[RegistroEntrada] ERROR al buscar información completa del docente:', err);
+            }
+          });
+
+          this.success.set(`✓ Docente identificado: ${docente.nombre_completo}`);
+          console.log('[RegistroEntrada] ✓ Mensaje de éxito mostrado');
+
+          // Cerrar webcam automáticamente después de 2 segundos
+          setTimeout(() => {
+            console.log('[RegistroEntrada] Cerrando webcam automáticamente tras identificación exitosa');
+            this.cerrarWebcam();
+          }, 2000);
+        } else {
+          console.log('[RegistroEntrada] ✗ No se identificó ningún docente en este frame');
+          console.log('[RegistroEntrada]   Mensaje:', response.message);
+          // En modo continuo, no mostramos error, solo continuamos capturando
+        }
+      },
+      error: (err) => {
+        console.error('[RegistroEntrada] ERROR en reconocimiento facial:', err);
+        console.error('[RegistroEntrada]   Status:', err.status);
+        console.error('[RegistroEntrada]   Message:', err.message);
+        console.error('[RegistroEntrada]   Error completo:', err);
+
+        this.reconociendoRostro.set(false);
+        this.isProcessingFrame = false;
+
+        // En modo continuo, no mostramos error persistente, solo log
+        // this.error.set('Error al identificar docente');
+      }
+    });
   }
 }

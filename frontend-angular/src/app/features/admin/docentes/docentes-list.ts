@@ -6,10 +6,11 @@ import { DocenteService } from '../../../core/services/docente.service';
 import { LoadingSpinner } from '../../../shared/components/loading-spinner/loading-spinner';
 import { AlertModal, AlertType } from '../../../shared/components/alert-modal/alert-modal';
 import { DocenteForm } from './docente-form';
+import { RegistrarRostroModal } from './registrar-rostro-modal';
 
 @Component({
   selector: 'app-docentes-list',
-  imports: [CommonModule, FormsModule, LoadingSpinner, AlertModal, DocenteForm],
+  imports: [CommonModule, FormsModule, LoadingSpinner, AlertModal, DocenteForm, RegistrarRostroModal],
   templateUrl: './docentes-list.html',
   styleUrl: './docentes-list.css',
 })
@@ -41,6 +42,10 @@ export class DocentesList implements OnInit {
   alertType = signal<AlertType>('success');
   alertTitle = signal<string>('');
   alertMessage = signal<string>('');
+
+  // Modal de registrar rostro
+  showRegistrarRostro = signal<boolean>(false);
+  docenteParaRostro = signal<Docente | null>(null);
 
   constructor(private docenteService: DocenteService) {}
 
@@ -220,5 +225,22 @@ export class DocentesList implements OnInit {
 
   closeAlert(): void {
     this.showAlert.set(false);
+  }
+
+  // Métodos para registrar rostro
+  abrirRegistrarRostro(docente: Docente): void {
+    this.docenteParaRostro.set(docente);
+    this.showRegistrarRostro.set(true);
+  }
+
+  cerrarRegistrarRostro(): void {
+    this.showRegistrarRostro.set(false);
+    this.docenteParaRostro.set(null);
+  }
+
+  onRostroRegistrado(): void {
+    this.showSuccessAlert('Rostro Registrado', 'El rostro del docente ha sido registrado exitosamente.');
+    // Opcionalmente recargar la lista
+    this.loadDocentes();
   }
 }

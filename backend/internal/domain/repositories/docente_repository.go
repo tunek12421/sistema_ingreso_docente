@@ -10,4 +10,8 @@ type DocenteRepository interface {
 	Create(docente *entities.Docente) error
 	Update(docente *entities.Docente) error
 	Delete(id int) error
+	AddFaceDescriptor(id int, descriptorJSON string) error
+	GetFaceDescriptors(id int) ([]string, error)
+	RemoveFaceDescriptor(id int, index int) error
+	ClearFaceDescriptors(id int) error
 }
