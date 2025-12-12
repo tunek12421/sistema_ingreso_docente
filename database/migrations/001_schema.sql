@@ -49,6 +49,7 @@ CREATE TABLE IF NOT EXISTS docentes (
     correo VARCHAR(255) UNIQUE NOT NULL CHECK (correo ~* '^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}$'),
     telefono BIGINT CHECK (telefono > 0),
     activo BOOLEAN DEFAULT TRUE,
+    face_descriptors JSONB,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
 );
@@ -94,7 +95,10 @@ CREATE TABLE IF NOT EXISTS llaves (
     estado VARCHAR(20) DEFAULT 'disponible' CHECK (estado IN ('disponible', 'en_uso', 'extraviada', 'inactiva')),
     descripcion TEXT,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+
+    id_docente INTEGER REFERENCES docentes(id) ON DELETE SET NULL,
+    id_uso INTEGER NULL
 );
 
 CREATE TRIGGER update_llaves_modtime
@@ -123,7 +127,9 @@ CREATE TABLE IF NOT EXISTS registros (
     editado_por INTEGER REFERENCES usuarios(id) ON DELETE SET NULL,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
-    CONSTRAINT uk_registro_unico UNIQUE (docente_id, fecha_hora, tipo)
+    CONSTRAINT uk_registro_unico UNIQUE (docente_id, fecha_hora, tipo),
+
+    id_uso INTEGER
 );
 
 CREATE TRIGGER update_registros_modtime
@@ -200,3 +206,4 @@ INNER JOIN docentes d ON r.docente_id = d.id
 INNER JOIN turnos t ON r.turno_id = t.id
 LEFT JOIN llaves l ON r.llave_id = l.id
 ORDER BY r.fecha_hora DESC;
+

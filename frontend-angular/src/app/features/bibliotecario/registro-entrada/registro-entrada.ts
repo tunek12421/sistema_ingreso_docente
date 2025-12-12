@@ -1,4 +1,4 @@
-import { Component, OnInit, signal, OnDestroy } from '@angular/core';
+import { Component, OnInit, signal, OnDestroy, ViewChild } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormBuilder, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
 import { Router } from '@angular/router';
@@ -30,6 +30,8 @@ interface LlaveInfo {
   styleUrl: './registro-entrada.css'
 })
 export class RegistroEntrada implements OnInit, OnDestroy {
+  @ViewChild(WebcamCaptureComponent) webcamComponent?: WebcamCaptureComponent;
+
   registroForm: FormGroup;
   llaves = signal<LlaveInfo[]>([]);
   llavesDisponibles = signal<LlaveInfo[]>([]);
@@ -389,6 +391,9 @@ export class RegistroEntrada implements OnInit, OnDestroy {
 
   cerrarWebcam() {
     console.log('[RegistroEntrada] Cerrando webcam');
+    if (this.webcamComponent) {
+      this.webcamComponent.detenerCamara();
+    }
     this.mostrarWebcam.set(false);
     this.isProcessingFrame = false;
   }
@@ -403,7 +408,7 @@ export class RegistroEntrada implements OnInit, OnDestroy {
   onFrameCaptured(frameFile: File) {
     // Evitar procesar múltiples frames simultáneamente
     if (this.isProcessingFrame) {
-      console.log('[RegistroEntrada] ⏭ Frame omitido (ya hay uno en proceso)');
+      console.log('[RegistroEntrada] Frame omitido (ya hay uno en proceso)');
       return;
     }
 
@@ -411,11 +416,11 @@ export class RegistroEntrada implements OnInit, OnDestroy {
     const ahora = Date.now();
     const tiempoDesdeUltimoExito = ahora - this.ultimoReconocimientoExitoso();
     if (this.ultimoReconocimientoExitoso() > 0 && tiempoDesdeUltimoExito < 5000) {
-      console.log(`[RegistroEntrada] ⏭ Frame omitido (identificación reciente hace ${(tiempoDesdeUltimoExito / 1000).toFixed(1)}s)`);
+      console.log(`[RegistroEntrada] Frame omitido (identificación reciente hace ${(tiempoDesdeUltimoExito / 1000).toFixed(1)}s)`);
       return;
     }
 
-    console.log('[RegistroEntrada] 📸 Procesando nuevo frame capturado automáticamente');
+    console.log('[RegistroEntrada] Procesando nuevo frame capturado automáticamente');
     this.procesarFrame(frameFile);
   }
 
@@ -475,10 +480,10 @@ export class RegistroEntrada implements OnInit, OnDestroy {
           console.log('[RegistroEntrada] ✓ Mensaje de éxito mostrado');
 
           // Cerrar webcam automáticamente después de 2 segundos
-          setTimeout(() => {
-            console.log('[RegistroEntrada] Cerrando webcam automáticamente tras identificación exitosa');
+          //setTimeout(() => {
+          //  console.log('[RegistroEntrada] Cerrando webcam automáticamente tras identificación exitosa');
             this.cerrarWebcam();
-          }, 2000);
+          //}, 2000);
         } else {
           console.log('[RegistroEntrada] ✗ No se identificó ningún docente en este frame');
           console.log('[RegistroEntrada]   Mensaje:', response.message);

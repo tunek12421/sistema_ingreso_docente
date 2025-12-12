@@ -166,14 +166,18 @@ import { Docente } from '../../../shared/models/docente.model';
 
               @if (capturedImages().length < 3) {
                 <app-webcam-capture
-                  (imageCaptured)="onImageCaptured($event)"
-                  (cancelled)="cancel()"
+                  [captureInterval]="2000"
+                  (frameCaptured)="onImageCaptured($event)"
+                  (closed)="cancel()"
                 ></app-webcam-capture>
 
                 <!-- Progress -->
                 <div class="mt-4 text-center">
                   <p class="text-sm text-gray-600">
                     Fotos capturadas: <span class="font-semibold text-blue-600">{{ capturedImages().length }}/3</span>
+                  </p>
+                  <p class="text-xs text-gray-500 mt-1">
+                    Capturando automáticamente cada 2 segundos...
                   </p>
                 </div>
               } @else {

@@ -20,7 +20,7 @@ func main() {
 	// Esto asegura timestamps consistentes independientemente de la ubicación del servidor
 	os.Setenv("TZ", "UTC")
 	time.Local = time.UTC
-	log.Println("⏰ Timezone configurado a UTC")
+	log.Println("Zona horaria configurada a UTC")
 
 	// Cargar variables de entorno desde archivo .env
 	if err := godotenv.Load("../.env"); err != nil {
@@ -77,7 +77,7 @@ func main() {
 
 	// Iniciar servidor
 	port := getEnv("PORT", "8080")
-	log.Printf("🚀 Servidor iniciado en puerto %s", port)
+	log.Printf("Servidor iniciado en puerto %s", port)
 	log.Fatal(http.ListenAndServe(":"+port, corsHandler))
 }
 

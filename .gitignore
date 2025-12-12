@@ -211,3 +211,5 @@ tmp/
 # Archivos de prueba temporales
 test-data/
 fixtures/temp/
+
+frontend-angular/src/app/features/bibliotecario/registro
