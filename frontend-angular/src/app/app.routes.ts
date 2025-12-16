@@ -33,6 +33,11 @@ export const routes: Routes = [
     loadChildren: () => import('./features/bibliotecario/bibliotecario.routes').then(m => m.BIBLIOTECARIO_ROUTES)
   },
   {
+    path: 'becario',
+    canActivate: [roleGuard(['becario'])],
+    loadChildren: () => import('./features/becario/becario.routes').then(m => m.BECARIO_ROUTES)
+  },
+  {
     path: 'docente',
     canActivate: [roleGuard(['docente'])],
     loadChildren: () => import('./features/docente/docente.routes').then(m => m.DOCENTE_ROUTES)

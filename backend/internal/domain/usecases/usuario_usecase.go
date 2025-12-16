@@ -29,6 +29,7 @@ func (uc *UsuarioUseCase) Create(usuario *entities.Usuario) error {
 	if usuario.Rol != entities.RolAdministrador &&
 		usuario.Rol != entities.RolJefeCarrera &&
 		usuario.Rol != entities.RolBibliotecario &&
+		usuario.Rol != entities.RolBecario &&
 		usuario.Rol != entities.RolDocente {
 		return errors.New("rol inválido")
 	}

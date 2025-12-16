@@ -8,6 +8,7 @@ const (
 	RolAdministrador Rol = "administrador"
 	RolJefeCarrera   Rol = "jefe_carrera"
 	RolBibliotecario Rol = "bibliotecario"
+	RolBecario       Rol = "becario"
 	RolDocente       Rol = "docente"
 )
 

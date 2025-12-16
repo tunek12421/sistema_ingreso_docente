@@ -212,6 +212,7 @@ export class UsuariosList implements OnInit {
       'administrador': 'bg-red-100 text-red-800',
       'jefe_carrera': 'bg-blue-100 text-blue-800',
       'bibliotecario': 'bg-green-100 text-green-800',
+      'becario': 'bg-orange-100 text-orange-800',
       'docente': 'bg-purple-100 text-purple-800'
     };
     return classes[rol];
@@ -222,6 +223,7 @@ export class UsuariosList implements OnInit {
       'administrador': 'Administrador',
       'jefe_carrera': 'Jefe de Carrera',
       'bibliotecario': 'Bibliotecario',
+      'becario': 'Becario',
       'docente': 'Docente'
     };
     return labels[rol];

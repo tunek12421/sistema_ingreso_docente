@@ -40,11 +40,11 @@ func Setup(r *mux.Router, h *Handlers) {
 	api.Handle("/usuarios/{id}/toggle", middleware.RequireRole(entities.RolAdministrador)(http.HandlerFunc(h.Usuario.ToggleActive))).Methods("PATCH")
 
 	// ==================== DOCENTES ====================
-	// Lectura - Todos menos Docente
-	api.Handle("/docentes", middleware.RequireRole(entities.RolAdministrador, entities.RolBibliotecario, entities.RolJefeCarrera)(http.HandlerFunc(h.Docente.GetAll))).Methods("GET")
-	api.Handle("/docentes/search", middleware.RequireRole(entities.RolAdministrador, entities.RolBibliotecario, entities.RolJefeCarrera)(http.HandlerFunc(h.Docente.SearchByCI))).Methods("GET")
-	api.Handle("/docentes/{id}", middleware.RequireRole(entities.RolAdministrador, entities.RolBibliotecario, entities.RolJefeCarrera)(http.HandlerFunc(h.Docente.GetByID))).Methods("GET")
-	api.Handle("/docentes/ci/{ci}", middleware.RequireRole(entities.RolAdministrador, entities.RolBibliotecario, entities.RolJefeCarrera)(http.HandlerFunc(h.Docente.GetByCI))).Methods("GET")
+	// Lectura - Administrador, Bibliotecario, Becario y Jefe de Carrera
+	api.Handle("/docentes", middleware.RequireRole(entities.RolAdministrador, entities.RolBibliotecario, entities.RolBecario, entities.RolJefeCarrera)(http.HandlerFunc(h.Docente.GetAll))).Methods("GET")
+	api.Handle("/docentes/search", middleware.RequireRole(entities.RolAdministrador, entities.RolBibliotecario, entities.RolBecario, entities.RolJefeCarrera)(http.HandlerFunc(h.Docente.SearchByCI))).Methods("GET")
+	api.Handle("/docentes/{id}", middleware.RequireRole(entities.RolAdministrador, entities.RolBibliotecario, entities.RolBecario, entities.RolJefeCarrera)(http.HandlerFunc(h.Docente.GetByID))).Methods("GET")
+	api.Handle("/docentes/ci/{ci}", middleware.RequireRole(entities.RolAdministrador, entities.RolBibliotecario, entities.RolBecario, entities.RolJefeCarrera)(http.HandlerFunc(h.Docente.GetByCI))).Methods("GET")
 
 	// Escritura - Administrador y Jefe de Carrera
 	api.Handle("/docentes", middleware.RequireRole(entities.RolAdministrador, entities.RolJefeCarrera)(http.HandlerFunc(h.Docente.Create))).Methods("POST")
@@ -52,23 +52,23 @@ func Setup(r *mux.Router, h *Handlers) {
 	api.Handle("/docentes/{id}", middleware.RequireRole(entities.RolAdministrador, entities.RolJefeCarrera)(http.HandlerFunc(h.Docente.Delete))).Methods("DELETE")
 
 	// ==================== REGISTROS ====================
-	// Registrar - Solo Bibliotecario
-	api.Handle("/registros/ingreso", middleware.RequireRole(entities.RolBibliotecario)(http.HandlerFunc(h.Registro.RegistrarIngreso))).Methods("POST")
-	api.Handle("/registros/salida", middleware.RequireRole(entities.RolBibliotecario)(http.HandlerFunc(h.Registro.RegistrarSalida))).Methods("POST")
+	// Registrar entrada/salida - Bibliotecario y Becario
+	api.Handle("/registros/ingreso", middleware.RequireRole(entities.RolBibliotecario, entities.RolBecario)(http.HandlerFunc(h.Registro.RegistrarIngreso))).Methods("POST")
+	api.Handle("/registros/salida", middleware.RequireRole(entities.RolBibliotecario, entities.RolBecario)(http.HandlerFunc(h.Registro.RegistrarSalida))).Methods("POST")
 
-	// Consulta - Bibliotecario, Jefe de Carrera y Administrador
-	api.Handle("/registros/hoy", middleware.RequireRole(entities.RolAdministrador, entities.RolBibliotecario, entities.RolJefeCarrera)(http.HandlerFunc(h.Registro.GetRegistrosHoy))).Methods("GET")
-	api.Handle("/registros/llave-actual", middleware.RequireRole(entities.RolAdministrador, entities.RolBibliotecario, entities.RolJefeCarrera)(http.HandlerFunc(h.Registro.GetLlaveActual))).Methods("GET")
-	api.Handle("/registros", middleware.RequireRole(entities.RolAdministrador, entities.RolBibliotecario, entities.RolJefeCarrera)(http.HandlerFunc(h.Registro.GetByFecha))).Methods("GET")
+	// Consulta - Administrador, Bibliotecario, Becario y Jefe de Carrera
+	api.Handle("/registros/hoy", middleware.RequireRole(entities.RolAdministrador, entities.RolBibliotecario, entities.RolBecario, entities.RolJefeCarrera)(http.HandlerFunc(h.Registro.GetRegistrosHoy))).Methods("GET")
+	api.Handle("/registros/llave-actual", middleware.RequireRole(entities.RolAdministrador, entities.RolBibliotecario, entities.RolBecario, entities.RolJefeCarrera)(http.HandlerFunc(h.Registro.GetLlaveActual))).Methods("GET")
+	api.Handle("/registros", middleware.RequireRole(entities.RolAdministrador, entities.RolBibliotecario, entities.RolBecario, entities.RolJefeCarrera)(http.HandlerFunc(h.Registro.GetByFecha))).Methods("GET")
 
-	// Editar registros - Solo Jefe de Carrera
-	api.Handle("/registros/{id}", middleware.RequireRole(entities.RolJefeCarrera)(http.HandlerFunc(h.Registro.Update))).Methods("PUT")
+	// Editar registros - Bibliotecario y Jefe de Carrera (para corregir errores)
+	api.Handle("/registros/{id}", middleware.RequireRole(entities.RolBibliotecario, entities.RolJefeCarrera)(http.HandlerFunc(h.Registro.Update))).Methods("PUT")
 
 	// ==================== TURNOS ====================
-	// Lectura - Administrador y Bibliotecario
-	api.Handle("/turnos", middleware.RequireRole(entities.RolAdministrador, entities.RolBibliotecario)(http.HandlerFunc(h.Turno.GetAll))).Methods("GET")
-	api.Handle("/turnos/actual", middleware.RequireRole(entities.RolAdministrador, entities.RolBibliotecario)(http.HandlerFunc(h.Turno.GetTurnoActual))).Methods("GET")
-	api.Handle("/turnos/{id}", middleware.RequireRole(entities.RolAdministrador, entities.RolBibliotecario)(http.HandlerFunc(h.Turno.GetByID))).Methods("GET")
+	// Lectura - Administrador, Bibliotecario y Becario
+	api.Handle("/turnos", middleware.RequireRole(entities.RolAdministrador, entities.RolBibliotecario, entities.RolBecario)(http.HandlerFunc(h.Turno.GetAll))).Methods("GET")
+	api.Handle("/turnos/actual", middleware.RequireRole(entities.RolAdministrador, entities.RolBibliotecario, entities.RolBecario)(http.HandlerFunc(h.Turno.GetTurnoActual))).Methods("GET")
+	api.Handle("/turnos/{id}", middleware.RequireRole(entities.RolAdministrador, entities.RolBibliotecario, entities.RolBecario)(http.HandlerFunc(h.Turno.GetByID))).Methods("GET")
 
 	// Escritura - Solo Administrador
 	api.Handle("/turnos", middleware.RequireRole(entities.RolAdministrador)(http.HandlerFunc(h.Turno.Create))).Methods("POST")
@@ -76,12 +76,12 @@ func Setup(r *mux.Router, h *Handlers) {
 	api.Handle("/turnos/{id}", middleware.RequireRole(entities.RolAdministrador)(http.HandlerFunc(h.Turno.Delete))).Methods("DELETE")
 
 	// ==================== LLAVES ====================
-	// Lectura - Administrador y Bibliotecario
-	api.Handle("/llaves", middleware.RequireRole(entities.RolAdministrador, entities.RolBibliotecario)(http.HandlerFunc(h.Llave.GetAll))).Methods("GET")
-	api.Handle("/llaves/search", middleware.RequireRole(entities.RolAdministrador, entities.RolBibliotecario)(http.HandlerFunc(h.Llave.Search))).Methods("GET")
-	api.Handle("/llaves/{id}", middleware.RequireRole(entities.RolAdministrador, entities.RolBibliotecario)(http.HandlerFunc(h.Llave.GetByID))).Methods("GET")
-	api.Handle("/llaves/codigo/{codigo}", middleware.RequireRole(entities.RolAdministrador, entities.RolBibliotecario)(http.HandlerFunc(h.Llave.GetByCodigo))).Methods("GET")
-	api.Handle("/llaves/aula/{aula_codigo}", middleware.RequireRole(entities.RolAdministrador, entities.RolBibliotecario)(http.HandlerFunc(h.Llave.GetByAulaCodigo))).Methods("GET")
+	// Lectura - Administrador, Bibliotecario y Becario
+	api.Handle("/llaves", middleware.RequireRole(entities.RolAdministrador, entities.RolBibliotecario, entities.RolBecario)(http.HandlerFunc(h.Llave.GetAll))).Methods("GET")
+	api.Handle("/llaves/search", middleware.RequireRole(entities.RolAdministrador, entities.RolBibliotecario, entities.RolBecario)(http.HandlerFunc(h.Llave.Search))).Methods("GET")
+	api.Handle("/llaves/{id}", middleware.RequireRole(entities.RolAdministrador, entities.RolBibliotecario, entities.RolBecario)(http.HandlerFunc(h.Llave.GetByID))).Methods("GET")
+	api.Handle("/llaves/codigo/{codigo}", middleware.RequireRole(entities.RolAdministrador, entities.RolBibliotecario, entities.RolBecario)(http.HandlerFunc(h.Llave.GetByCodigo))).Methods("GET")
+	api.Handle("/llaves/aula/{aula_codigo}", middleware.RequireRole(entities.RolAdministrador, entities.RolBibliotecario, entities.RolBecario)(http.HandlerFunc(h.Llave.GetByAulaCodigo))).Methods("GET")
 
 	// Escritura - Solo Administrador
 	api.Handle("/llaves", middleware.RequireRole(entities.RolAdministrador)(http.HandlerFunc(h.Llave.Create))).Methods("POST")
@@ -90,11 +90,11 @@ func Setup(r *mux.Router, h *Handlers) {
 	api.Handle("/llaves/{id}/estado", middleware.RequireRole(entities.RolAdministrador)(http.HandlerFunc(h.Llave.UpdateEstado))).Methods("PATCH")
 
 	// ==================== RECONOCIMIENTO FACIAL ====================
-	// Detectar rostro - Administrador y Bibliotecario
-	api.Handle("/reconocimiento/detectar", middleware.RequireRole(entities.RolAdministrador, entities.RolBibliotecario)(http.HandlerFunc(h.Reconocimiento.DetectarRostro))).Methods("POST")
+	// Detectar rostro - Administrador, Bibliotecario y Becario
+	api.Handle("/reconocimiento/detectar", middleware.RequireRole(entities.RolAdministrador, entities.RolBibliotecario, entities.RolBecario)(http.HandlerFunc(h.Reconocimiento.DetectarRostro))).Methods("POST")
 
-	// Identificar docente por rostro - Administrador y Bibliotecario
-	api.Handle("/reconocimiento/identificar", middleware.RequireRole(entities.RolAdministrador, entities.RolBibliotecario)(http.HandlerFunc(h.Reconocimiento.IdentificarDocente))).Methods("POST")
+	// Identificar docente por rostro - Administrador, Bibliotecario y Becario
+	api.Handle("/reconocimiento/identificar", middleware.RequireRole(entities.RolAdministrador, entities.RolBibliotecario, entities.RolBecario)(http.HandlerFunc(h.Reconocimiento.IdentificarDocente))).Methods("POST")
 
 	// Gestión de rostros de docentes - Solo Administrador
 	api.Handle("/docentes/{id}/rostro", middleware.RequireRole(entities.RolAdministrador)(http.HandlerFunc(h.Reconocimiento.RegistrarRostroDocente))).Methods("POST")

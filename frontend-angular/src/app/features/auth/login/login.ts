@@ -58,6 +58,9 @@ export class LoginComponent {
           case 'bibliotecario':
             this.router.navigate(['/bibliotecario']);
             break;
+          case 'becario':
+            this.router.navigate(['/becario']);
+            break;
           case 'docente':
             this.router.navigate(['/docente']);
             break;

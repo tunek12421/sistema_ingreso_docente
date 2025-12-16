@@ -22,7 +22,8 @@ export class UsuarioForm implements OnInit {
   roles: { value: Rol; label: string }[] = [
     { value: 'administrador', label: 'Administrador' },
     { value: 'jefe_carrera', label: 'Jefe de Carrera' },
-    { value: 'bibliotecario', label: 'Bibliotecario' }
+    { value: 'bibliotecario', label: 'Bibliotecario' },
+    { value: 'becario', label: 'Becario' }
     // Nota: Los usuarios docentes se crean automáticamente al crear un docente
   ];
 
