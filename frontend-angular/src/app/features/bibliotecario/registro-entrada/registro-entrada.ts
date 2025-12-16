@@ -365,7 +365,7 @@ export class RegistroEntrada implements OnInit, OnDestroy {
 
   onSuccessAnimationClosed(): void {
     this.showSuccessAnimation.set(false);
-    this.router.navigate(['/bibliotecario']);
+    // No redirigir - quedarse en la misma pagina para seguir registrando
   }
 
   getTurnoNombre(id: number | string): string {

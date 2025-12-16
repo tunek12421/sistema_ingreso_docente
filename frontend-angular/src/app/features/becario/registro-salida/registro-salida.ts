@@ -120,7 +120,7 @@ export class RegistroSalida implements OnInit {
 
   onSuccessAnimationClosed(): void {
     this.showSuccessAnimation.set(false);
-    this.router.navigate(['/becario']);
+    // No redirigir - quedarse en la misma pagina para seguir registrando
   }
 
   getHoraFormat(hora: string): string {

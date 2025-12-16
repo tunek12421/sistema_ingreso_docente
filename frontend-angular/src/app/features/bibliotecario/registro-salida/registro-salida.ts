@@ -154,6 +154,6 @@ export class RegistroSalida implements OnInit {
 
   onSuccessAnimationClosed(): void {
     this.showSuccessAnimation.set(false);
-    this.router.navigate(['/bibliotecario']);
+    // No redirigir - quedarse en la misma pagina para seguir registrando
   }
 }
