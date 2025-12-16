@@ -88,9 +88,8 @@ export class UsuarioForm implements OnInit {
       email: user.email || ''
     });
 
-    // Password es opcional en edición
+    // Password no se usa en edición (se cambia desde el modal dedicado)
     this.usuarioForm.get('password')?.clearValidators();
-    this.usuarioForm.get('password')?.setValidators([Validators.minLength(6)]);
     this.usuarioForm.get('password')?.updateValueAndValidity();
 
     this.showPassword = false;
@@ -118,15 +117,10 @@ export class UsuarioForm implements OnInit {
 
     if (this.isEditMode) {
       const updateData: UsuarioUpdate = {
-        username: formValue.username,
         rol: formValue.rol,
         nombre_completo: formValue.nombre_completo || undefined,
         email: formValue.email || undefined
       };
-      // Solo incluir password si fue proporcionado
-      if (formValue.password) {
-        updateData.password = formValue.password;
-      }
       this.onSave.emit({ id: this.usuario()!.id, data: updateData });
     } else {
       const createData: UsuarioCreate = {
