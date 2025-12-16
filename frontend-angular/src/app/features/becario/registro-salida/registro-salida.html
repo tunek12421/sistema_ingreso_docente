@@ -216,3 +216,12 @@
     }
   }
 </div>
+
+<!-- Animacion de exito -->
+<app-success-animation
+  [show]="showSuccessAnimation()"
+  title="Salida Registrada"
+  [message]="successAnimationMessage()"
+  [autoCloseDelay]="2500"
+  (closed)="onSuccessAnimationClosed()"
+></app-success-animation>

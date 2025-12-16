@@ -4,10 +4,11 @@ import { FormBuilder, FormGroup, ReactiveFormsModule, Validators } from '@angula
 import { Router } from '@angular/router';
 import { RegistroService } from '../../../core/services/registro.service';
 import { LlaveActual } from '../../../shared/models';
+import { SuccessAnimationComponent } from '../../../shared/components/success-animation/success-animation.component';
 
 @Component({
   selector: 'app-registro-salida',
-  imports: [CommonModule, ReactiveFormsModule],
+  imports: [CommonModule, ReactiveFormsModule, SuccessAnimationComponent],
   templateUrl: './registro-salida.html',
   styleUrl: './registro-salida.css'
 })
@@ -19,6 +20,8 @@ export class RegistroSalida implements OnInit {
   loadingData = signal<boolean>(true);
   error = signal<string>('');
   success = signal<string>('');
+  showSuccessAnimation = signal<boolean>(false);
+  successAnimationMessage = signal<string>('');
 
   constructor(
     private fb: FormBuilder,
@@ -93,18 +96,17 @@ export class RegistroSalida implements OnInit {
 
     this.registroService.registrarSalida(request).subscribe({
       next: () => {
-        this.success.set(`Salida registrada exitosamente para ${registroActivo.docente_nombre_completo}`);
+        this.loading.set(false);
+
+        // Mostrar animacion de exito
+        this.successAnimationMessage.set(`Llave ${registroActivo.llave_codigo} devuelta por ${registroActivo.docente_nombre_completo}`);
+        this.showSuccessAnimation.set(true);
+
         this.registroForm.reset();
         this.registroSeleccionado.set(null);
-        this.loading.set(false);
 
         // Recargar registros activos
         this.loadRegistrosActivos();
-
-        // Redirigir al dashboard después de 2 segundos
-        setTimeout(() => {
-          this.router.navigate(['/bibliotecario']);
-        }, 2000);
       },
       error: (err) => {
         console.error('Error al registrar salida:', err);
@@ -114,6 +116,11 @@ export class RegistroSalida implements OnInit {
         this.loading.set(false);
       }
     });
+  }
+
+  onSuccessAnimationClosed(): void {
+    this.showSuccessAnimation.set(false);
+    this.router.navigate(['/becario']);
   }
 
   getHoraFormat(hora: string): string {

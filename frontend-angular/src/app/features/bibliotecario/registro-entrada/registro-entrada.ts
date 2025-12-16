@@ -10,6 +10,7 @@ import { ReconocimientoService } from '../../../core/services/reconocimiento.ser
 import { Turno } from '../../../shared/models';
 import { debounceTime, distinctUntilChanged, Subject, takeUntil, switchMap } from 'rxjs';
 import { WebcamCaptureComponent } from '../../../shared/components/webcam-capture/webcam-capture.component';
+import { SuccessAnimationComponent } from '../../../shared/components/success-animation/success-animation.component';
 
 interface DocenteInfo {
   id: number;
@@ -25,7 +26,7 @@ interface LlaveInfo {
 
 @Component({
   selector: 'app-registro-entrada',
-  imports: [CommonModule, ReactiveFormsModule, WebcamCaptureComponent],
+  imports: [CommonModule, ReactiveFormsModule, WebcamCaptureComponent, SuccessAnimationComponent],
   templateUrl: './registro-entrada.html',
   styleUrl: './registro-entrada.css'
 })
@@ -51,6 +52,8 @@ export class RegistroEntrada implements OnInit, OnDestroy {
   mostrarWebcam = signal<boolean>(false);
   reconociendoRostro = signal<boolean>(false);
   ultimoReconocimientoExitoso = signal<number>(0); // Timestamp del último reconocimiento exitoso
+  showSuccessAnimation = signal<boolean>(false);
+  successAnimationMessage = signal<string>('');
 
   private destroy$ = new Subject<void>();
   private ciSearchSubject$ = new Subject<string>();
@@ -337,19 +340,18 @@ export class RegistroEntrada implements OnInit, OnDestroy {
 
     this.registroService.registrarEntrada(request).subscribe({
       next: (response) => {
-        this.success.set('Entrada registrada exitosamente');
+        this.loading.set(false);
+
+        // Mostrar animacion de exito
+        this.successAnimationMessage.set(`Llave ${this.llaveEncontrada()!.codigo} entregada a ${this.docenteEncontrado()!.nombre}`);
+        this.showSuccessAnimation.set(true);
+
         this.registroForm.reset();
         this.docenteEncontrado.set(null);
         this.llaveEncontrada.set(null);
-        this.loading.set(false);
 
         // Recargar llaves disponibles
         this.loadData();
-
-        // Redirigir al dashboard después de 2 segundos
-        setTimeout(() => {
-          this.router.navigate(['/bibliotecario']);
-        }, 2000);
       },
       error: (err) => {
         console.error('Error al registrar entrada:', err);
@@ -359,6 +361,11 @@ export class RegistroEntrada implements OnInit, OnDestroy {
         this.loading.set(false);
       }
     });
+  }
+
+  onSuccessAnimationClosed(): void {
+    this.showSuccessAnimation.set(false);
+    this.router.navigate(['/bibliotecario']);
   }
 
   getTurnoNombre(id: number | string): string {
