@@ -16,8 +16,14 @@ func NewUsuarioRepository(db *sql.DB) *UsuarioRepositoryImpl {
 }
 
 func (r *UsuarioRepositoryImpl) FindByUsername(username string) (*entities.Usuario, error) {
-	query := `SELECT id, username, password, rol, nombre_completo, email, activo, created_at, updated_at
-	          FROM usuarios WHERE username = $1 AND activo = TRUE`
+	// JOIN con docentes para obtener nombre_completo y email desde docentes cuando rol='docente'
+	query := `SELECT u.id, u.username, u.password, u.rol,
+	          COALESCE(d.nombre_completo, u.nombre_completo) as nombre_completo,
+	          COALESCE(d.correo, u.email) as email,
+	          u.activo, u.created_at, u.updated_at
+	          FROM usuarios u
+	          LEFT JOIN docentes d ON d.usuario_id = u.id AND u.rol = 'docente'
+	          WHERE u.username = $1 AND u.activo = TRUE`
 
 	usuario := &entities.Usuario{}
 	err := r.db.QueryRow(query, username).Scan(
@@ -43,8 +49,14 @@ func (r *UsuarioRepositoryImpl) FindByUsername(username string) (*entities.Usuar
 }
 
 func (r *UsuarioRepositoryImpl) FindByID(id int) (*entities.Usuario, error) {
-	query := `SELECT id, username, password, rol, nombre_completo, email, activo, created_at, updated_at
-	          FROM usuarios WHERE id = $1`
+	// JOIN con docentes para obtener nombre_completo y email desde docentes cuando rol='docente'
+	query := `SELECT u.id, u.username, u.password, u.rol,
+	          COALESCE(d.nombre_completo, u.nombre_completo) as nombre_completo,
+	          COALESCE(d.correo, u.email) as email,
+	          u.activo, u.created_at, u.updated_at
+	          FROM usuarios u
+	          LEFT JOIN docentes d ON d.usuario_id = u.id AND u.rol = 'docente'
+	          WHERE u.id = $1`
 
 	usuario := &entities.Usuario{}
 	err := r.db.QueryRow(query, id).Scan(
@@ -107,8 +119,14 @@ func (r *UsuarioRepositoryImpl) Delete(id int) error {
 }
 
 func (r *UsuarioRepositoryImpl) FindAll() ([]*entities.Usuario, error) {
-	query := `SELECT id, username, password, rol, nombre_completo, email, activo, created_at, updated_at
-	          FROM usuarios ORDER BY id`
+	// JOIN con docentes para obtener nombre_completo y email desde docentes cuando rol='docente'
+	query := `SELECT u.id, u.username, u.password, u.rol,
+	          COALESCE(d.nombre_completo, u.nombre_completo) as nombre_completo,
+	          COALESCE(d.correo, u.email) as email,
+	          u.activo, u.created_at, u.updated_at
+	          FROM usuarios u
+	          LEFT JOIN docentes d ON d.usuario_id = u.id AND u.rol = 'docente'
+	          ORDER BY u.id`
 
 	rows, err := r.db.Query(query)
 	if err != nil {

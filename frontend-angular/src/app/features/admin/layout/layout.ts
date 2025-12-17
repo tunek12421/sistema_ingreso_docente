@@ -21,8 +21,7 @@ export class Layout {
     { path: '/admin/usuarios', label: 'Usuarios', icon: 'users' },
     { path: '/admin/docentes', label: 'Docentes', icon: 'academic-cap' },
     { path: '/admin/turnos', label: 'Turnos', icon: 'clock' },
-    { path: '/admin/llaves', label: 'Llaves', icon: 'key' },
-    { path: '/admin/registros', label: 'Registros', icon: 'clipboard-list' }
+    { path: '/admin/llaves', label: 'Llaves', icon: 'key' }
   ];
 
   toggleSidebar(): void {

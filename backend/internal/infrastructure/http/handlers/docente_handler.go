@@ -170,16 +170,15 @@ func (h *DocenteHandler) Create(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Crear automáticamente el usuario asociado con username único
+	// NOTA: No guardamos nombre_completo ni email en usuario - se obtienen del docente via JOIN
 	username := h.generateUniqueUsername(docente.NombreCompleto)
 	password := fmt.Sprintf("%d", docente.DocumentoIdentidad) // CI como contraseña inicial
 
 	usuario := &entities.Usuario{
-		Username:       username,
-		Password:       password,
-		Rol:            entities.RolDocente,
-		NombreCompleto: docente.NombreCompleto,
-		Email:          docente.Correo,
-		Activo:         true,
+		Username: username,
+		Password: password,
+		Rol:      entities.RolDocente,
+		Activo:   true,
 	}
 
 	// Intentar crear el usuario
@@ -208,6 +207,13 @@ func (h *DocenteHandler) Update(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// Obtener el docente actual para mantener el usuario_id
+	docenteActual, err := h.docenteUseCase.GetByID(id)
+	if err != nil {
+		http.Error(w, `{"error":"Docente no encontrado"}`, http.StatusNotFound)
+		return
+	}
+
 	var docente entities.Docente
 	if err := json.NewDecoder(r.Body).Decode(&docente); err != nil {
 		http.Error(w, `{"error":"Datos inválidos"}`, http.StatusBadRequest)
@@ -215,10 +221,15 @@ func (h *DocenteHandler) Update(w http.ResponseWriter, r *http.Request) {
 	}
 
 	docente.ID = id
+	// Mantener el usuario_id del docente actual
+	docente.UsuarioID = docenteActual.UsuarioID
+
 	if err := h.docenteUseCase.Update(&docente); err != nil {
 		http.Error(w, `{"error":"`+err.Error()+`"}`, http.StatusBadRequest)
 		return
 	}
+
+	// NOTA: No actualizamos nombre/email en usuario - se obtienen del docente via JOIN
 
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(docente)

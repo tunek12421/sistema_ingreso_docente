@@ -30,15 +30,41 @@
             <label for="documento_identidad" class="block text-sm font-medium text-gray-700 mb-1">
               Documento de Identidad (CI) <span class="text-red-500">*</span>
             </label>
-            <input
-              type="text"
-              id="documento_identidad"
-              formControlName="documento_identidad"
-              [class]="'w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-primary-500 focus:outline-none ' + (hasError('documento_identidad') ? 'border-red-300 focus:border-red-500' : 'border-gray-300 focus:border-primary-500')"
-              placeholder="Ej: 12345678"
-            />
+            <div class="relative">
+              <input
+                type="text"
+                id="documento_identidad"
+                formControlName="documento_identidad"
+                class="w-full px-4 py-2 pr-10 border rounded-lg focus:ring-2 focus:ring-primary-500 focus:outline-none transition-colors"
+                [class.border-red-300]="hasError('documento_identidad')"
+                [class.bg-red-50]="hasError('documento_identidad')"
+                [class.border-green-500]="isValid('documento_identidad')"
+                [class.bg-green-50]="isValid('documento_identidad')"
+                [class.border-gray-300]="!hasError('documento_identidad') && !isValid('documento_identidad')"
+                placeholder="Ej: 12345678"
+                maxlength="15"
+              />
+              <div class="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none">
+                @if (hasError('documento_identidad')) {
+                  <svg class="h-5 w-5 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                  </svg>
+                } @else if (isValid('documento_identidad')) {
+                  <svg class="h-5 w-5 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+                  </svg>
+                }
+              </div>
+            </div>
             @if (hasError('documento_identidad')) {
-              <p class="mt-1 text-sm text-red-600">{{ getErrorMessage('documento_identidad') }}</p>
+              <p class="mt-1 text-sm text-red-600 flex items-center gap-1">
+                <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+                {{ getErrorMessage('documento_identidad') }}
+              </p>
+            } @else {
+              <p class="mt-1 text-xs text-gray-500">Solo numeros. Min 5, max 15 caracteres.</p>
             }
           </div>
 
@@ -47,49 +73,127 @@
             <label for="nombre_completo" class="block text-sm font-medium text-gray-700 mb-1">
               Nombre Completo <span class="text-red-500">*</span>
             </label>
-            <input
-              type="text"
-              id="nombre_completo"
-              formControlName="nombre_completo"
-              [class]="'w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-primary-500 focus:outline-none ' + (hasError('nombre_completo') ? 'border-red-300 focus:border-red-500' : 'border-gray-300 focus:border-primary-500')"
-              placeholder="Ej: Juan Pérez García"
-            />
+            <div class="relative">
+              <input
+                type="text"
+                id="nombre_completo"
+                formControlName="nombre_completo"
+                class="w-full px-4 py-2 pr-10 border rounded-lg focus:ring-2 focus:ring-primary-500 focus:outline-none transition-colors"
+                [class.border-red-300]="hasError('nombre_completo')"
+                [class.bg-red-50]="hasError('nombre_completo')"
+                [class.border-green-500]="isValid('nombre_completo')"
+                [class.bg-green-50]="isValid('nombre_completo')"
+                [class.border-gray-300]="!hasError('nombre_completo') && !isValid('nombre_completo')"
+                placeholder="Ej: Juan Perez Garcia"
+                maxlength="100"
+              />
+              <div class="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none">
+                @if (hasError('nombre_completo')) {
+                  <svg class="h-5 w-5 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                  </svg>
+                } @else if (isValid('nombre_completo')) {
+                  <svg class="h-5 w-5 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+                  </svg>
+                }
+              </div>
+            </div>
             @if (hasError('nombre_completo')) {
-              <p class="mt-1 text-sm text-red-600">{{ getErrorMessage('nombre_completo') }}</p>
+              <p class="mt-1 text-sm text-red-600 flex items-center gap-1">
+                <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+                {{ getErrorMessage('nombre_completo') }}
+              </p>
+            } @else {
+              <p class="mt-1 text-xs text-gray-500">Solo letras y espacios. Min 3 caracteres.</p>
             }
           </div>
 
           <!-- Correo -->
           <div>
             <label for="correo" class="block text-sm font-medium text-gray-700 mb-1">
-              Correo Electrónico <span class="text-red-500">*</span>
+              Correo Electronico <span class="text-red-500">*</span>
             </label>
-            <input
-              type="email"
-              id="correo"
-              formControlName="correo"
-              [class]="'w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-primary-500 focus:outline-none ' + (hasError('correo') ? 'border-red-300 focus:border-red-500' : 'border-gray-300 focus:border-primary-500')"
-              placeholder="Ej: juan.perez@universidad.edu"
-            />
+            <div class="relative">
+              <input
+                type="email"
+                id="correo"
+                formControlName="correo"
+                class="w-full px-4 py-2 pr-10 border rounded-lg focus:ring-2 focus:ring-primary-500 focus:outline-none transition-colors"
+                [class.border-red-300]="hasError('correo')"
+                [class.bg-red-50]="hasError('correo')"
+                [class.border-green-500]="isValid('correo')"
+                [class.bg-green-50]="isValid('correo')"
+                [class.border-gray-300]="!hasError('correo') && !isValid('correo')"
+                placeholder="Ej: juan.perez@universidad.edu"
+                maxlength="100"
+              />
+              <div class="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none">
+                @if (hasError('correo')) {
+                  <svg class="h-5 w-5 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                  </svg>
+                } @else if (isValid('correo')) {
+                  <svg class="h-5 w-5 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+                  </svg>
+                }
+              </div>
+            </div>
             @if (hasError('correo')) {
-              <p class="mt-1 text-sm text-red-600">{{ getErrorMessage('correo') }}</p>
+              <p class="mt-1 text-sm text-red-600 flex items-center gap-1">
+                <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+                {{ getErrorMessage('correo') }}
+              </p>
+            } @else {
+              <p class="mt-1 text-xs text-gray-500">Formato: usuario@dominio.com</p>
             }
           </div>
 
           <!-- Teléfono -->
           <div>
             <label for="telefono" class="block text-sm font-medium text-gray-700 mb-1">
-              Teléfono (Opcional)
+              Telefono <span class="text-gray-400 text-xs font-normal">(Opcional)</span>
             </label>
-            <input
-              type="text"
-              id="telefono"
-              formControlName="telefono"
-              [class]="'w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-primary-500 focus:outline-none ' + (hasError('telefono') ? 'border-red-300 focus:border-red-500' : 'border-gray-300 focus:border-primary-500')"
-              placeholder="Ej: 60123456"
-            />
+            <div class="relative">
+              <input
+                type="text"
+                id="telefono"
+                formControlName="telefono"
+                class="w-full px-4 py-2 pr-10 border rounded-lg focus:ring-2 focus:ring-primary-500 focus:outline-none transition-colors"
+                [class.border-red-300]="hasError('telefono')"
+                [class.bg-red-50]="hasError('telefono')"
+                [class.border-green-500]="isValid('telefono')"
+                [class.bg-green-50]="isValid('telefono')"
+                [class.border-gray-300]="!hasError('telefono') && !isValid('telefono')"
+                placeholder="Ej: 60123456"
+                maxlength="15"
+              />
+              <div class="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none">
+                @if (hasError('telefono')) {
+                  <svg class="h-5 w-5 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                  </svg>
+                } @else if (isValid('telefono')) {
+                  <svg class="h-5 w-5 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+                  </svg>
+                }
+              </div>
+            </div>
             @if (hasError('telefono')) {
-              <p class="mt-1 text-sm text-red-600">{{ getErrorMessage('telefono') }}</p>
+              <p class="mt-1 text-sm text-red-600 flex items-center gap-1">
+                <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+                {{ getErrorMessage('telefono') }}
+              </p>
+            } @else {
+              <p class="mt-1 text-xs text-gray-500">Solo numeros. Min 7 caracteres.</p>
             }
           </div>
 
@@ -101,11 +205,12 @@
             <select
               id="activo"
               formControlName="activo"
-              class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
+              class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-colors"
             >
               <option [value]="true">Activo</option>
               <option [value]="false">Inactivo</option>
             </select>
+            <p class="mt-1 text-xs text-gray-500">Los docentes inactivos no pueden registrar entradas.</p>
           </div>
         </div>
       </div>
