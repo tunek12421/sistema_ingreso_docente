@@ -114,6 +114,17 @@ func (uc *RegistroUseCase) GetLlaveActualDocente(docenteID int) (*int, error) {
 	return registro.LlaveID, nil
 }
 
+func (uc *RegistroUseCase) GetByID(id int) (*entities.Registro, error) {
+	return uc.registroRepo.FindByID(id)
+}
+
+func (uc *RegistroUseCase) Update(registro *entities.Registro) error {
+	if registro.ID <= 0 {
+		return fmt.Errorf("ID de registro inválido")
+	}
+	return uc.registroRepo.Update(registro)
+}
+
 func (uc *RegistroUseCase) calcularRetraso(ahora time.Time, horaInicio string) int {
 	// Parsear hora de inicio del turno (puede venir como "15:04:05" o "0000-01-01T15:00:00Z")
 	var inicio time.Time

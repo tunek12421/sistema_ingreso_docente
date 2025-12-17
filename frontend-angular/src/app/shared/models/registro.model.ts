@@ -38,9 +38,13 @@ export interface RegistroSalidaRequest {
 }
 
 export interface RegistroUpdate {
-  hora_ingreso?: string;
-  hora_salida?: string;
+  docente_id?: number;
+  fecha_hora?: string;
+  llave_id?: number;
+  turno_id?: number;
+  tipo?: 'ingreso' | 'salida';
   observaciones?: string;
+  editado_por?: number;
 }
 
 export interface LlaveActual {

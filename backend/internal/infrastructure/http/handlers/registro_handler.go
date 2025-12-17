@@ -5,9 +5,12 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
+	"strconv"
 	"time"
 
+	"github.com/gorilla/mux"
 	"github.com/sistema-ingreso-docente/backend/internal/application/dto"
+	"github.com/sistema-ingreso-docente/backend/internal/domain/entities"
 	"github.com/sistema-ingreso-docente/backend/internal/domain/usecases"
 )
 
@@ -292,12 +295,69 @@ func (h *RegistroHandler) GetLlaveActual(w http.ResponseWriter, r *http.Request)
 	})
 }
 
-// Update permite al Jefe de Carrera editar/corregir registros
+// Update permite al Bibliotecario o Jefe de Carrera editar/corregir registros
 func (h *RegistroHandler) Update(w http.ResponseWriter, r *http.Request) {
-	// Por ahora, solo devolvemos un mensaje indicando que la funcionalidad está en desarrollo
+	vars := mux.Vars(r)
+	id, err := strconv.Atoi(vars["id"])
+	if err != nil {
+		http.Error(w, `{"error":"ID inválido"}`, http.StatusBadRequest)
+		return
+	}
+
+	// Obtener el registro actual
+	registroActual, err := h.registroUseCase.GetByID(id)
+	if err != nil {
+		http.Error(w, `{"error":"Registro no encontrado"}`, http.StatusNotFound)
+		return
+	}
+
+	// Parsear los datos de actualización
+	var req dto.RegistroUpdateRequest
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		http.Error(w, `{"error":"Datos inválidos"}`, http.StatusBadRequest)
+		return
+	}
+
+	// Actualizar solo los campos proporcionados
+	if req.DocenteID != nil {
+		registroActual.DocenteID = *req.DocenteID
+	}
+
+	if req.FechaHora != nil {
+		fechaHora, err := time.Parse(time.RFC3339, *req.FechaHora)
+		if err != nil {
+			http.Error(w, `{"error":"Formato de fecha/hora inválido. Use RFC3339"}`, http.StatusBadRequest)
+			return
+		}
+		registroActual.FechaHora = fechaHora
+	}
+
+	if req.LlaveID != nil {
+		registroActual.LlaveID = req.LlaveID
+	}
+
+	if req.TurnoID != nil {
+		registroActual.TurnoID = *req.TurnoID
+	}
+
+	if req.Tipo != nil {
+		registroActual.Tipo = entities.TipoRegistro(*req.Tipo)
+	}
+
+	if req.Observaciones != nil {
+		registroActual.Observaciones = req.Observaciones
+	}
+
+	if req.EditadoPor != nil {
+		registroActual.EditadoPor = req.EditadoPor
+	}
+
+	// Guardar cambios
+	if err := h.registroUseCase.Update(registroActual); err != nil {
+		http.Error(w, fmt.Sprintf(`{"error":"%s"}`, err.Error()), http.StatusInternalServerError)
+		return
+	}
+
 	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(http.StatusNotImplemented)
-	json.NewEncoder(w).Encode(map[string]string{
-		"message": "Funcionalidad de edición de registros en desarrollo",
-	})
+	json.NewEncoder(w).Encode(registroActual)
 }

@@ -127,7 +127,7 @@ CREATE TABLE IF NOT EXISTS registros (
     editado_por INTEGER REFERENCES usuarios(id) ON DELETE SET NULL,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
-    CONSTRAINT uk_registro_unico UNIQUE (docente_id, fecha_hora, tipo),
+    CONSTRAINT uk_registro_unico UNIQUE (docente_id, fecha_hora, tipo, llave_id),
 
     id_uso INTEGER
 );
