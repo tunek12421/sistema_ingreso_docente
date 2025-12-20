@@ -41,6 +41,7 @@ export interface RegistroUpdate {
   docente_id?: number;
   fecha_hora?: string;
   llave_id?: number;
+  quitar_llave?: boolean;  // true = poner llave_id en NULL
   turno_id?: number;
   tipo?: 'ingreso' | 'salida';
   observaciones?: string;

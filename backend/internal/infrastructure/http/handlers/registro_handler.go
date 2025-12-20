@@ -311,6 +311,19 @@ func (h *RegistroHandler) Update(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// Guardar copia del registro anterior para sincronización de llaves
+	registroAnterior := &entities.Registro{
+		ID:        registroActual.ID,
+		DocenteID: registroActual.DocenteID,
+		TurnoID:   registroActual.TurnoID,
+		Tipo:      registroActual.Tipo,
+		FechaHora: registroActual.FechaHora,
+	}
+	if registroActual.LlaveID != nil {
+		llaveIDCopia := *registroActual.LlaveID
+		registroAnterior.LlaveID = &llaveIDCopia
+	}
+
 	// Parsear los datos de actualización
 	var req dto.RegistroUpdateRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
@@ -332,7 +345,10 @@ func (h *RegistroHandler) Update(w http.ResponseWriter, r *http.Request) {
 		registroActual.FechaHora = fechaHora
 	}
 
-	if req.LlaveID != nil {
+	// Manejar cambio de llave: puede ser nueva llave o quitar llave
+	if req.QuitarLlave {
+		registroActual.LlaveID = nil
+	} else if req.LlaveID != nil {
 		registroActual.LlaveID = req.LlaveID
 	}
 
@@ -352,8 +368,8 @@ func (h *RegistroHandler) Update(w http.ResponseWriter, r *http.Request) {
 		registroActual.EditadoPor = req.EditadoPor
 	}
 
-	// Guardar cambios
-	if err := h.registroUseCase.Update(registroActual); err != nil {
+	// Guardar cambios con sincronización de estados de llaves
+	if err := h.registroUseCase.UpdateConSincronizacionLlaves(registroAnterior, registroActual); err != nil {
 		http.Error(w, fmt.Sprintf(`{"error":"%s"}`, err.Error()), http.StatusInternalServerError)
 		return
 	}

@@ -13,6 +13,8 @@ type RegistroRepository interface {
 	FindByDocenteYFecha(docenteID int, fecha time.Time) ([]*entities.Registro, error)
 	FindRegistrosHoy() ([]*entities.Registro, error)
 	FindUltimoIngresoConLlave(docenteID int) (*entities.Registro, error)
+	// DocenteTieneLlave verifica si un docente tiene una llave específica (ingreso sin salida correspondiente)
+	DocenteTieneLlave(docenteID int, llaveID int) (bool, error)
 	Create(registro *entities.Registro) error
 	Update(registro *entities.Registro) error
 	Delete(id int) error

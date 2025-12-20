@@ -18,11 +18,12 @@ type RegistroSalidaRequest struct {
 
 // RegistroUpdateRequest para edición de registros por bibliotecario/jefe de carrera
 type RegistroUpdateRequest struct {
-	DocenteID     *int    `json:"docente_id,omitempty"`
-	FechaHora     *string `json:"fecha_hora,omitempty"`
-	LlaveID       *int    `json:"llave_id,omitempty"`
-	TurnoID       *int    `json:"turno_id,omitempty"`
-	Tipo          *string `json:"tipo,omitempty"`
-	Observaciones *string `json:"observaciones,omitempty"`
-	EditadoPor    *int    `json:"editado_por,omitempty"`
+	DocenteID       *int    `json:"docente_id,omitempty"`
+	FechaHora       *string `json:"fecha_hora,omitempty"`
+	LlaveID         *int    `json:"llave_id,omitempty"`
+	QuitarLlave     bool    `json:"quitar_llave,omitempty"` // true = poner llave_id en NULL
+	TurnoID         *int    `json:"turno_id,omitempty"`
+	Tipo            *string `json:"tipo,omitempty"`
+	Observaciones   *string `json:"observaciones,omitempty"`
+	EditadoPor      *int    `json:"editado_por,omitempty"`
 }

@@ -166,9 +166,44 @@ export class Historial implements OnInit {
     });
   }
 
+  // Detectar si hay cambios sensibles que requieren advertencia
+  hasCambiosSensibles(): boolean {
+    const form = this.editForm();
+    const cambioLlave = form.llave_id !== this.originalLlaveId;
+    const cambioTipo = form.tipo !== this.originalTipo;
+    const cambioDocente = form.docente_id !== this.originalDocenteId;
+    return cambioLlave || cambioTipo || cambioDocente;
+  }
+
+  // Generar mensaje de advertencia
+  getMensajeAdvertencia(): string {
+    const form = this.editForm();
+    const cambios: string[] = [];
+
+    if (form.docente_id !== this.originalDocenteId) {
+      cambios.push('cambiar el docente');
+    }
+    if (form.llave_id !== this.originalLlaveId) {
+      cambios.push('cambiar la llave');
+    }
+    if (form.tipo !== this.originalTipo) {
+      cambios.push(`cambiar el tipo de ${this.originalTipo === 'ingreso' ? 'Entrada' : 'Salida'} a ${form.tipo === 'ingreso' ? 'Entrada' : 'Salida'}`);
+    }
+
+    return `ATENCION: Esta modificacion afectara el estado de las llaves.\n\nVas a: ${cambios.join(', ')}.\n\nEl sistema actualizara automaticamente el estado de las llaves segun los cambios:\n- Si cambias la llave de un ingreso: la anterior quedara disponible y la nueva en uso\n- Si cambias tipo de Entrada a Salida: la llave quedara disponible\n- Si cambias tipo de Salida a Entrada: la llave quedara en uso\n\n¿Deseas continuar?`;
+  }
+
   saveEdit(): void {
     const registro = this.editingRegistro();
     if (!registro) return;
+
+    // Si hay cambios sensibles, pedir confirmación
+    if (this.hasCambiosSensibles()) {
+      const confirmado = confirm(this.getMensajeAdvertencia());
+      if (!confirmado) {
+        return;
+      }
+    }
 
     this.saving.set(true);
     this.error.set('');
@@ -195,7 +230,13 @@ export class Historial implements OnInit {
 
     // Verificar si llave_id cambió
     if (form.llave_id !== this.originalLlaveId) {
-      updateData.llave_id = form.llave_id || undefined;
+      if (form.llave_id === null && this.originalLlaveId !== null) {
+        // Se cambió a "Sin llave" - enviar quitar_llave: true
+        updateData.quitar_llave = true;
+      } else if (form.llave_id !== null) {
+        // Se cambió a una llave específica
+        updateData.llave_id = form.llave_id;
+      }
     }
 
     // Verificar si turno_id cambió

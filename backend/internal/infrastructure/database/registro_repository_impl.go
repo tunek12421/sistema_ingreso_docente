@@ -224,6 +224,33 @@ func (r *RegistroRepositoryImpl) Delete(id int) error {
 	return err
 }
 
+// DocenteTieneLlave verifica si un docente tiene una llave específica (ingreso sin salida correspondiente)
+func (r *RegistroRepositoryImpl) DocenteTieneLlave(docenteID int, llaveID int) (bool, error) {
+	query := `
+		SELECT EXISTS (
+			SELECT 1 FROM registros ing
+			WHERE ing.docente_id = $1
+			  AND ing.llave_id = $2
+			  AND ing.tipo = 'ingreso'
+			  AND DATE(ing.fecha_hora) = CURRENT_DATE
+			  AND NOT EXISTS (
+				  SELECT 1 FROM registros sal
+				  WHERE sal.docente_id = ing.docente_id
+					AND sal.llave_id = ing.llave_id
+					AND sal.tipo = 'salida'
+					AND sal.fecha_hora > ing.fecha_hora
+					AND DATE(sal.fecha_hora) = CURRENT_DATE
+			  )
+		)`
+
+	var existe bool
+	err := r.db.QueryRow(query, docenteID, llaveID).Scan(&existe)
+	if err != nil {
+		return false, err
+	}
+	return existe, nil
+}
+
 func (r *RegistroRepositoryImpl) scanRegistros(rows *sql.Rows) ([]*entities.Registro, error) {
 	registros := []*entities.Registro{}
 	for rows.Next() {

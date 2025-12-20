@@ -27,6 +27,23 @@ func NewRegistroUseCase(
 }
 
 func (uc *RegistroUseCase) RegistrarIngreso(docenteID, turnoID int, llaveID *int, observaciones *string) (*entities.Registro, error) {
+	// Validar que la llave no esté ya en uso
+	if llaveID != nil {
+		llave, err := uc.llaveRepo.FindByID(*llaveID)
+		if err != nil {
+			return nil, fmt.Errorf("llave no encontrada: %w", err)
+		}
+		if llave.Estado == entities.EstadoEnUso {
+			return nil, fmt.Errorf("la llave %s ya está en uso", llave.Codigo)
+		}
+		if llave.Estado == entities.EstadoExtraviada {
+			return nil, fmt.Errorf("la llave %s está marcada como extraviada", llave.Codigo)
+		}
+		if llave.Estado == entities.EstadoInactiva {
+			return nil, fmt.Errorf("la llave %s está inactiva", llave.Codigo)
+		}
+	}
+
 	// Obtener turno para calcular retraso
 	turno, err := uc.turnoRepo.FindByID(turnoID)
 	if err != nil {
@@ -61,6 +78,21 @@ func (uc *RegistroUseCase) RegistrarIngreso(docenteID, turnoID int, llaveID *int
 }
 
 func (uc *RegistroUseCase) RegistrarSalida(docenteID, turnoID int, llaveID *int, observaciones *string) (*entities.Registro, error) {
+	// Validar que el docente tenga la llave antes de devolverla
+	if llaveID != nil {
+		tieneLlave, err := uc.registroRepo.DocenteTieneLlave(docenteID, *llaveID)
+		if err != nil {
+			return nil, fmt.Errorf("error verificando llave: %w", err)
+		}
+		if !tieneLlave {
+			llave, _ := uc.llaveRepo.FindByID(*llaveID)
+			if llave != nil {
+				return nil, fmt.Errorf("el docente no tiene la llave %s en su poder", llave.Codigo)
+			}
+			return nil, fmt.Errorf("el docente no tiene esa llave en su poder")
+		}
+	}
+
 	// Obtener turno para calcular minutos extra
 	turno, err := uc.turnoRepo.FindByID(turnoID)
 	if err != nil {
@@ -123,6 +155,97 @@ func (uc *RegistroUseCase) Update(registro *entities.Registro) error {
 		return fmt.Errorf("ID de registro inválido")
 	}
 	return uc.registroRepo.Update(registro)
+}
+
+// UpdateConSincronizacionLlaves actualiza un registro y sincroniza los estados de las llaves
+// Esto es usado por el bibliotecario/jefe de carrera al editar registros
+func (uc *RegistroUseCase) UpdateConSincronizacionLlaves(registroAnterior, registroNuevo *entities.Registro) error {
+	if registroNuevo.ID <= 0 {
+		return fmt.Errorf("ID de registro inválido")
+	}
+
+	// Detectar cambios
+	llaveAnteriorID := registroAnterior.LlaveID
+	llaveNuevaID := registroNuevo.LlaveID
+	tipoAnterior := registroAnterior.Tipo
+	tipoNuevo := registroNuevo.Tipo
+
+	// Determinar si hubo cambio de llave
+	cambioLlave := false
+	if llaveAnteriorID == nil && llaveNuevaID != nil {
+		cambioLlave = true
+	} else if llaveAnteriorID != nil && llaveNuevaID == nil {
+		cambioLlave = true
+	} else if llaveAnteriorID != nil && llaveNuevaID != nil && *llaveAnteriorID != *llaveNuevaID {
+		cambioLlave = true
+	}
+
+	cambioTipo := tipoAnterior != tipoNuevo
+
+	// VALIDACION: Si se está asignando una llave nueva a un registro de tipo ingreso,
+	// verificar que la llave no esté ya en uso
+	if llaveNuevaID != nil && tipoNuevo == entities.TipoIngreso {
+		// Verificar el estado actual de la llave
+		llave, err := uc.llaveRepo.FindByID(*llaveNuevaID)
+		if err != nil {
+			return fmt.Errorf("llave no encontrada: %w", err)
+		}
+
+		// Si la llave está en uso, solo permitir si es la misma llave del registro original
+		if llave.Estado == entities.EstadoEnUso {
+			// Es válido si la llave anterior es la misma (no cambió)
+			if llaveAnteriorID == nil || *llaveAnteriorID != *llaveNuevaID {
+				return fmt.Errorf("la llave %s ya está en uso por otro docente", llave.Codigo)
+			}
+		}
+
+		if llave.Estado == entities.EstadoExtraviada {
+			return fmt.Errorf("la llave %s está marcada como extraviada", llave.Codigo)
+		}
+		if llave.Estado == entities.EstadoInactiva {
+			return fmt.Errorf("la llave %s está inactiva", llave.Codigo)
+		}
+	}
+
+	// Guardar el registro
+	if err := uc.registroRepo.Update(registroNuevo); err != nil {
+		return err
+	}
+
+	// Solo sincronizar si hubo cambios relevantes
+	if !cambioLlave && !cambioTipo {
+		return nil
+	}
+
+	// Lógica de sincronización:
+	// El estado final de cada llave depende del tipo NUEVO del registro
+
+	// 1. Liberar llave anterior si cambió y el registro anterior era ingreso
+	if cambioLlave && llaveAnteriorID != nil && tipoAnterior == entities.TipoIngreso {
+		_ = uc.llaveRepo.UpdateEstado(*llaveAnteriorID, entities.EstadoDisponible)
+	}
+
+	// 2. Actualizar estado de la llave nueva según el tipo nuevo
+	if llaveNuevaID != nil {
+		if tipoNuevo == entities.TipoIngreso {
+			// Ingreso = llave en uso
+			_ = uc.llaveRepo.UpdateEstado(*llaveNuevaID, entities.EstadoEnUso)
+		} else {
+			// Salida = llave disponible
+			_ = uc.llaveRepo.UpdateEstado(*llaveNuevaID, entities.EstadoDisponible)
+		}
+	}
+
+	// 3. Si solo cambió el tipo (misma llave), actualizar según tipo nuevo
+	if !cambioLlave && cambioTipo && llaveNuevaID != nil {
+		if tipoNuevo == entities.TipoIngreso {
+			_ = uc.llaveRepo.UpdateEstado(*llaveNuevaID, entities.EstadoEnUso)
+		} else {
+			_ = uc.llaveRepo.UpdateEstado(*llaveNuevaID, entities.EstadoDisponible)
+		}
+	}
+
+	return nil
 }
 
 func (uc *RegistroUseCase) calcularRetraso(ahora time.Time, horaInicio string) int {
