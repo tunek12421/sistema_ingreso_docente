@@ -117,15 +117,26 @@
                   </div>
                 </td>
                 <td class="px-6 py-4 whitespace-nowrap text-right">
-                  <button
-                    (click)="openEditModal(registro)"
-                    class="text-purple-600 hover:text-purple-900 transition-colors"
-                    title="Editar registro"
-                  >
-                    <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
-                    </svg>
-                  </button>
+                  <div class="flex items-center justify-end gap-2">
+                    <button
+                      (click)="openEditModal(registro)"
+                      class="text-purple-600 hover:text-purple-900 transition-colors p-1 rounded hover:bg-purple-50"
+                      title="Editar registro"
+                    >
+                      <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                      </svg>
+                    </button>
+                    <button
+                      (click)="showDeleteModal(registro)"
+                      class="text-red-600 hover:text-red-900 transition-colors p-1 rounded hover:bg-red-50"
+                      title="Eliminar registro"
+                    >
+                      <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                      </svg>
+                    </button>
+                  </div>
                 </td>
               </tr>
             }
@@ -323,6 +334,124 @@
               Guardando...
             } @else {
               Guardar Cambios
+            }
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+}
+
+<!-- Modal de Confirmacion con Animacion SVG -->
+@if (showConfirmModal()) {
+  <div class="fixed inset-0 z-[100] overflow-y-auto">
+    <!-- Backdrop con blur -->
+    <div
+      class="fixed inset-0 bg-gray-900/60 backdrop-blur-sm transition-opacity animate-fade-in"
+      (click)="closeConfirmModal()"
+    ></div>
+
+    <!-- Modal Container -->
+    <div class="flex items-center justify-center min-h-screen p-4">
+      <div
+        class="relative bg-white rounded-2xl shadow-2xl max-w-md w-full p-8 animate-scale-in"
+        (click)="$event.stopPropagation()"
+      >
+        <!-- Icono Animado -->
+        <div class="flex justify-center mb-6">
+          @if (confirmModalType() === 'warning') {
+            <!-- Warning Animation -->
+            <div class="w-20 h-20">
+              <svg class="w-20 h-20 animate-warning" viewBox="0 0 52 52">
+                <circle
+                  class="stroke-yellow-500 fill-none"
+                  cx="26" cy="26" r="24"
+                  stroke-width="2"
+                  stroke-dasharray="150"
+                  stroke-dashoffset="150"
+                  style="animation: draw-circle 0.6s ease-out forwards;"
+                />
+                <path
+                  class="stroke-yellow-500 fill-none"
+                  stroke-width="3"
+                  stroke-linecap="round"
+                  d="M26 16 L26 28"
+                  stroke-dasharray="20"
+                  stroke-dashoffset="20"
+                  style="animation: draw-line 0.3s ease-out 0.4s forwards;"
+                />
+                <circle
+                  class="fill-yellow-500"
+                  cx="26" cy="35" r="2"
+                  style="animation: pop-in 0.2s ease-out 0.6s forwards; opacity: 0; transform-origin: center;"
+                />
+              </svg>
+            </div>
+          } @else {
+            <!-- Delete Animation -->
+            <div class="w-20 h-20">
+              <svg class="w-20 h-20" viewBox="0 0 52 52">
+                <circle
+                  class="stroke-red-500 fill-none"
+                  cx="26" cy="26" r="24"
+                  stroke-width="2"
+                  stroke-dasharray="150"
+                  stroke-dashoffset="150"
+                  style="animation: draw-circle 0.6s ease-out forwards;"
+                />
+                <path
+                  class="stroke-red-500 fill-none"
+                  stroke-width="3"
+                  stroke-linecap="round"
+                  d="M17 17 L35 35 M35 17 L17 35"
+                  stroke-dasharray="50"
+                  stroke-dashoffset="50"
+                  style="animation: draw-x 0.4s ease-out 0.4s forwards;"
+                />
+              </svg>
+            </div>
+          }
+        </div>
+
+        <!-- Titulo -->
+        <h3 class="text-xl font-bold text-center mb-3 animate-slide-up"
+            [class.text-yellow-700]="confirmModalType() === 'warning'"
+            [class.text-red-700]="confirmModalType() === 'delete'">
+          {{ confirmModalTitle() }}
+        </h3>
+
+        <!-- Mensaje -->
+        <p class="text-gray-600 text-center mb-8 whitespace-pre-line animate-slide-up-delay">
+          {{ confirmModalMessage() }}
+        </p>
+
+        <!-- Botones -->
+        <div class="flex gap-3 animate-slide-up-delay-2">
+          <button
+            (click)="closeConfirmModal()"
+            class="flex-1 px-4 py-3 text-sm font-medium text-gray-700 bg-gray-100 rounded-xl hover:bg-gray-200 transition-all duration-200 active:scale-95"
+          >
+            Cancelar
+          </button>
+          <button
+            (click)="confirmAction()"
+            [disabled]="deleting()"
+            class="flex-1 px-4 py-3 text-sm font-medium text-white rounded-xl transition-all duration-200 active:scale-95 disabled:opacity-50 flex items-center justify-center gap-2"
+            [class.bg-yellow-600]="confirmModalType() === 'warning'"
+            [class.hover:bg-yellow-700]="confirmModalType() === 'warning'"
+            [class.bg-red-600]="confirmModalType() === 'delete'"
+            [class.hover:bg-red-700]="confirmModalType() === 'delete'"
+          >
+            @if (deleting()) {
+              <svg class="animate-spin h-4 w-4" fill="none" viewBox="0 0 24 24">
+                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+              </svg>
+              Eliminando...
+            } @else if (confirmModalType() === 'delete') {
+              Eliminar
+            } @else {
+              Continuar
             }
           </button>
         </div>

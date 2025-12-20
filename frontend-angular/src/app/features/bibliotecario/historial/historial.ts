@@ -52,6 +52,15 @@ export class Historial implements OnInit {
   });
   saving = signal<boolean>(false);
 
+  // Modal de confirmación (advertencias y eliminación)
+  showConfirmModal = signal<boolean>(false);
+  confirmModalType = signal<'warning' | 'delete'>('warning');
+  confirmModalTitle = signal<string>('');
+  confirmModalMessage = signal<string>('');
+  private pendingAction: (() => void) | null = null;
+  deletingRegistro = signal<Registro | null>(null);
+  deleting = signal<boolean>(false);
+
   // Guardar valores originales para detectar cambios
   private originalDocenteId: number | null = null;
   private originalFecha = '';
@@ -197,13 +206,22 @@ export class Historial implements OnInit {
     const registro = this.editingRegistro();
     if (!registro) return;
 
-    // Si hay cambios sensibles, pedir confirmación
+    // Si hay cambios sensibles, mostrar modal de confirmación
     if (this.hasCambiosSensibles()) {
-      const confirmado = confirm(this.getMensajeAdvertencia());
-      if (!confirmado) {
-        return;
-      }
+      this.showWarningModal(
+        'Cambios Sensibles',
+        this.getMensajeAdvertencia(),
+        () => this.executeSaveEdit()
+      );
+      return;
     }
+
+    this.executeSaveEdit();
+  }
+
+  private executeSaveEdit(): void {
+    const registro = this.editingRegistro();
+    if (!registro) return;
 
     this.saving.set(true);
     this.error.set('');
@@ -311,5 +329,68 @@ export class Historial implements OnInit {
     return tipo === 'ingreso'
       ? 'bg-green-100 text-green-800'
       : 'bg-blue-100 text-blue-800';
+  }
+
+  // Modal de confirmación
+  showWarningModal(title: string, message: string, action: () => void): void {
+    this.confirmModalType.set('warning');
+    this.confirmModalTitle.set(title);
+    this.confirmModalMessage.set(message);
+    this.pendingAction = action;
+    this.showConfirmModal.set(true);
+  }
+
+  showDeleteModal(registro: Registro): void {
+    this.deletingRegistro.set(registro);
+    this.confirmModalType.set('delete');
+    this.confirmModalTitle.set('Eliminar Registro');
+    const docenteNombre = registro.docente_nombre || registro.docente_nombre_completo || 'Desconocido';
+    const llaveCodigo = registro.llave_codigo || 'Sin llave';
+    const tipo = registro.tipo === 'ingreso' ? 'Entrada' : 'Salida';
+    this.confirmModalMessage.set(
+      `¿Estas seguro de eliminar este registro?\n\n` +
+      `Docente: ${docenteNombre}\n` +
+      `Llave: ${llaveCodigo}\n` +
+      `Tipo: ${tipo}\n\n` +
+      `Esta accion no se puede deshacer y podria afectar el estado de las llaves.`
+    );
+    this.pendingAction = () => this.executeDelete();
+    this.showConfirmModal.set(true);
+  }
+
+  closeConfirmModal(): void {
+    this.showConfirmModal.set(false);
+    this.pendingAction = null;
+    this.deletingRegistro.set(null);
+  }
+
+  confirmAction(): void {
+    if (this.pendingAction) {
+      this.pendingAction();
+    }
+    this.closeConfirmModal();
+  }
+
+  private executeDelete(): void {
+    const registro = this.deletingRegistro();
+    if (!registro) return;
+
+    this.deleting.set(true);
+    this.error.set('');
+
+    this.registroService.delete(registro.id).subscribe({
+      next: () => {
+        this.successMessage.set('Registro eliminado correctamente');
+        this.loadRegistros();
+        this.loadLlaves(); // Recargar llaves por si cambió el estado
+        this.deleting.set(false);
+        setTimeout(() => this.successMessage.set(''), 3000);
+      },
+      error: (err) => {
+        console.error('Error al eliminar registro:', err);
+        this.error.set(err.error?.error || 'Error al eliminar el registro');
+        this.deleting.set(false);
+      }
+    });
   }
 }

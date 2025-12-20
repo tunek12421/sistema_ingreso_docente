@@ -63,6 +63,7 @@ func Setup(r *mux.Router, h *Handlers) {
 
 	// Editar registros - Bibliotecario y Jefe de Carrera (para corregir errores)
 	api.Handle("/registros/{id}", middleware.RequireRole(entities.RolBibliotecario, entities.RolJefeCarrera)(http.HandlerFunc(h.Registro.Update))).Methods("PUT")
+	api.Handle("/registros/{id}", middleware.RequireRole(entities.RolBibliotecario, entities.RolJefeCarrera)(http.HandlerFunc(h.Registro.Delete))).Methods("DELETE")
 
 	// ==================== TURNOS ====================
 	// Lectura - Administrador, Bibliotecario y Becario

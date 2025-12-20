@@ -377,3 +377,30 @@ func (h *RegistroHandler) Update(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(registroActual)
 }
+
+// Delete elimina un registro y sincroniza el estado de la llave si es necesario
+func (h *RegistroHandler) Delete(w http.ResponseWriter, r *http.Request) {
+	vars := mux.Vars(r)
+	id, err := strconv.Atoi(vars["id"])
+	if err != nil {
+		http.Error(w, `{"error":"ID inválido"}`, http.StatusBadRequest)
+		return
+	}
+
+	// Obtener el registro antes de eliminarlo para sincronizar la llave
+	registro, err := h.registroUseCase.GetByID(id)
+	if err != nil {
+		http.Error(w, `{"error":"Registro no encontrado"}`, http.StatusNotFound)
+		return
+	}
+
+	// Eliminar con sincronización de estado de llave
+	if err := h.registroUseCase.DeleteConSincronizacionLlave(registro); err != nil {
+		http.Error(w, fmt.Sprintf(`{"error":"%s"}`, err.Error()), http.StatusInternalServerError)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusOK)
+	json.NewEncoder(w).Encode(map[string]string{"message": "Registro eliminado correctamente"})
+}

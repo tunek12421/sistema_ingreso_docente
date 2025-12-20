@@ -248,6 +248,25 @@ func (uc *RegistroUseCase) UpdateConSincronizacionLlaves(registroAnterior, regis
 	return nil
 }
 
+// DeleteConSincronizacionLlave elimina un registro y actualiza el estado de la llave si es necesario
+func (uc *RegistroUseCase) DeleteConSincronizacionLlave(registro *entities.Registro) error {
+	if registro.ID <= 0 {
+		return fmt.Errorf("ID de registro inválido")
+	}
+
+	// Eliminar el registro
+	if err := uc.registroRepo.Delete(registro.ID); err != nil {
+		return fmt.Errorf("error eliminando registro: %w", err)
+	}
+
+	// Si el registro era de tipo ingreso y tenía llave, liberar la llave
+	if registro.Tipo == entities.TipoIngreso && registro.LlaveID != nil {
+		_ = uc.llaveRepo.UpdateEstado(*registro.LlaveID, entities.EstadoDisponible)
+	}
+
+	return nil
+}
+
 func (uc *RegistroUseCase) calcularRetraso(ahora time.Time, horaInicio string) int {
 	// Parsear hora de inicio del turno (puede venir como "15:04:05" o "0000-01-01T15:00:00Z")
 	var inicio time.Time
