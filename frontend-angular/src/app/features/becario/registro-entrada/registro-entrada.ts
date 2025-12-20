@@ -486,11 +486,7 @@ export class RegistroEntrada implements OnInit, OnDestroy {
           this.success.set(`✓ Docente identificado: ${docente.nombre_completo}`);
           console.log('[RegistroEntrada] ✓ Mensaje de éxito mostrado');
 
-          // Cerrar webcam automáticamente después de 2 segundos
-          //setTimeout(() => {
-          //  console.log('[RegistroEntrada] Cerrando webcam automáticamente tras identificación exitosa');
-            this.cerrarWebcam();
-          //}, 2000);
+          // No cerrar webcam automáticamente - el usuario lo cierra manualmente
         } else {
           console.log('[RegistroEntrada] ✗ No se identificó ningún docente en este frame');
           console.log('[RegistroEntrada]   Mensaje:', response.message);
