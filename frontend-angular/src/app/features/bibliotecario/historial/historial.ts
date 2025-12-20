@@ -30,6 +30,10 @@ export class Historial implements OnInit {
   error = signal<string>('');
   successMessage = signal<string>('');
 
+  // Filtro por fecha
+  fechaSeleccionada = signal<string>(this.getTodayString());
+  esHoy = signal<boolean>(true);
+
   // Modal de edición
   showEditModal = signal<boolean>(false);
   editingRegistro = signal<Registro | null>(null);
@@ -81,17 +85,62 @@ export class Historial implements OnInit {
     this.loading.set(true);
     this.error.set('');
 
-    this.registroService.getRegistrosHoy().subscribe({
-      next: (registros) => {
-        this.registros.set(registros || []);
-        this.loading.set(false);
-      },
-      error: (err) => {
-        console.error('Error al cargar registros:', err);
-        this.error.set('Error al cargar el historial de registros');
-        this.registros.set([]);
-        this.loading.set(false);
-      }
+    const fecha = this.fechaSeleccionada();
+    this.esHoy.set(fecha === this.getTodayString());
+
+    // Si es hoy, usar getRegistrosHoy, sino usar getByFecha
+    if (this.esHoy()) {
+      this.registroService.getRegistrosHoy().subscribe({
+        next: (registros) => {
+          this.registros.set(registros || []);
+          this.loading.set(false);
+        },
+        error: (err) => {
+          console.error('Error al cargar registros:', err);
+          this.error.set('Error al cargar el historial de registros');
+          this.registros.set([]);
+          this.loading.set(false);
+        }
+      });
+    } else {
+      this.registroService.getByFecha(fecha).subscribe({
+        next: (registros) => {
+          this.registros.set(registros || []);
+          this.loading.set(false);
+        },
+        error: (err) => {
+          console.error('Error al cargar registros:', err);
+          this.error.set('Error al cargar el historial de registros');
+          this.registros.set([]);
+          this.loading.set(false);
+        }
+      });
+    }
+  }
+
+  private getTodayString(): string {
+    const today = new Date();
+    return today.toISOString().slice(0, 10);
+  }
+
+  onFechaChange(fecha: string): void {
+    this.fechaSeleccionada.set(fecha);
+    this.loadRegistros();
+  }
+
+  irAHoy(): void {
+    this.fechaSeleccionada.set(this.getTodayString());
+    this.loadRegistros();
+  }
+
+  getFechaDisplay(): string {
+    const fecha = this.fechaSeleccionada();
+    const date = new Date(fecha + 'T12:00:00');
+    return date.toLocaleDateString('es-BO', {
+      weekday: 'long',
+      year: 'numeric',
+      month: 'long',
+      day: 'numeric'
     });
   }
 

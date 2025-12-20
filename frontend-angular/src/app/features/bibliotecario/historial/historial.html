@@ -1,20 +1,49 @@
 <div class="space-y-6">
   <!-- Page Header -->
-  <div class="flex justify-between items-center">
+  <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
     <div>
       <h1 class="text-3xl font-bold text-gray-900">Historial de Registros</h1>
-      <p class="mt-2 text-sm text-gray-600">Registros del dia de hoy</p>
+      <p class="mt-2 text-sm text-gray-600">{{ getFechaDisplay() }}</p>
     </div>
-    <button
-      (click)="loadRegistros()"
-      class="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors flex items-center gap-2"
-    >
-      <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-      </svg>
-      Actualizar
-    </button>
+    <div class="flex items-center gap-3">
+      <!-- Selector de fecha -->
+      <div class="flex items-center gap-2">
+        <input
+          type="date"
+          [ngModel]="fechaSeleccionada()"
+          (ngModelChange)="onFechaChange($event)"
+          class="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500"
+        />
+        @if (!esHoy()) {
+          <button
+            (click)="irAHoy()"
+            class="px-3 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors text-sm"
+          >
+            Hoy
+          </button>
+        }
+      </div>
+      <button
+        (click)="loadRegistros()"
+        class="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors flex items-center gap-2"
+      >
+        <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+        </svg>
+        Actualizar
+      </button>
+    </div>
   </div>
+
+  <!-- Indicador de fecha pasada -->
+  @if (!esHoy()) {
+    <div class="bg-amber-50 border border-amber-200 text-amber-800 px-4 py-3 rounded-lg flex items-center gap-2">
+      <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+      </svg>
+      <p>Estas viendo registros de una fecha anterior. Las ediciones afectaran los estados actuales de las llaves.</p>
+    </div>
+  }
 
   <!-- Success Message -->
   @if (successMessage()) {
@@ -45,7 +74,7 @@
         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
       </svg>
       <h3 class="mt-4 text-lg font-medium text-gray-900">No hay registros</h3>
-      <p class="mt-2 text-sm text-gray-500">No se encontraron registros para hoy</p>
+      <p class="mt-2 text-sm text-gray-500">No se encontraron registros para {{ esHoy() ? 'hoy' : 'esta fecha' }}</p>
     </div>
   } @else {
     <!-- Registros Table -->
@@ -155,7 +184,7 @@
         </div>
         <div class="ml-3">
           <p class="text-sm text-purple-700">
-            Total de registros hoy: <span class="font-semibold">{{ registros().length }}</span>
+            Total de registros{{ esHoy() ? ' hoy' : '' }}: <span class="font-semibold">{{ registros().length }}</span>
           </p>
         </div>
       </div>
