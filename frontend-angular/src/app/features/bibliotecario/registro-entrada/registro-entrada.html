@@ -313,7 +313,7 @@
 <!-- Modal de Reconocimiento Facial -->
 @if (mostrarWebcam()) {
   <app-webcam-capture
-    [captureInterval]="1000"
+    [modo]="'identificacion'"
     (frameCaptured)="onFrameCaptured($event)"
     (closed)="cerrarWebcam()"
   ></app-webcam-capture>

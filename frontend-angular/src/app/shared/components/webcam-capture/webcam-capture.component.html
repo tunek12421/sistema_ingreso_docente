@@ -1,12 +1,12 @@
 <!-- Contenedor flotante con UI completa -->
 <div class="fixed bottom-4 right-4 z-50 transition-all duration-300"
-     [class.w-80]="!minimizado()"
+     [class.w-96]="!minimizado()"
      [class.w-auto]="minimizado()">
-  
-  <!-- Elementos de video y canvas - Siempre presentes (ocultos cuando minimizado) -->
-  <video #video autoplay playsinline [class.hidden]="true"></video>
+
+  <!-- Elementos de video y canvas - Siempre presentes (ocultos) -->
+  <video #video autoplay playsinline class="hidden"></video>
   <canvas #canvas class="hidden"></canvas>
-  
+
   <!-- Mensaje de error -->
   @if (error()) {
     <div class="bg-red-50 border border-red-200 rounded-lg p-3 flex items-start shadow-lg">
@@ -17,64 +17,74 @@
     </div>
   }
 
-  <!-- Mostrar vista solo si la cámara está lista (permisos aceptados) -->
+  <!-- Mostrar vista solo si la cámara está lista -->
   @if (cameraReady() && !error()) {
-    <!-- Vista minimizada - Solo botón -->
+    <!-- Vista minimizada -->
     @if (minimizado()) {
       <div class="bg-blue-600 hover:bg-blue-700 text-white rounded-full shadow-2xl cursor-pointer p-4 flex items-center gap-2"
           (click)="toggleMinimizar()">
-        @if (procesando() || estadoCaptura() === 'capturando') {
+        @if (procesando() || validandoRostro() || estadoCaptura() === 'capturando') {
           <div class="w-6 h-6 animate-spin rounded-full border-b-2 border-white"></div>
+        } @else if (modo === 'registro' && rostroDetectado()) {
+          <svg class="w-6 h-6 text-green-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+          </svg>
+        } @else if (modo === 'identificacion' && estadoCaptura() === 'quietud') {
+          <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7.5 3.75H6A2.25 2.25 0 0 0 3.75 6v1.5M16.5 3.75H18A2.25 2.25 0 0 1 20.25 6v1.5m0 9V18A2.25 2.25 0 0 1 18 20.25h-1.5m-9 0H6A2.25 2.25 0 0 1 3.75 18v-1.5M15 12a3 3 0 1 1-6 0 3 3 0 0 1 6 0Z" />
+          </svg>
         } @else {
           <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            @if (estadoCaptura() === 'quietud'){
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7.5 3.75H6A2.25 2.25 0 0 0 3.75 6v1.5M16.5 3.75H18A2.25 2.25 0 0 1 20.25 6v1.5m0 9V18A2.25 2.25 0 0 1 18 20.25h-1.5m-9 0H6A2.25 2.25 0 0 1 3.75 18v-1.5M15 12a3 3 0 1 1-6 0 3 3 0 0 1 6 0Z" />
-            } @else {
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" />
-            }
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" />
           </svg>
         }
       </div>
     }
-    <!-- Vista expandida - UI completa -->
+
+    <!-- Vista expandida -->
     @if (!minimizado()) {
-      <div class="bg-white rounded-lg shadow-2xl border-2 border-blue-500">
-        <div class="p-3">
+      <div class="bg-white rounded-lg shadow-2xl border-2 transition-colors"
+           [class.border-green-500]="(modo === 'registro' && rostroDetectado()) || (modo === 'identificacion' && estadoCaptura() === 'quietud')"
+           [class.border-blue-500]="!((modo === 'registro' && rostroDetectado()) || (modo === 'identificacion' && estadoCaptura() === 'quietud'))">
+        <div class="p-4">
           <!-- Header -->
-          <div class="flex items-center justify-between mb-2">
+          <div class="flex items-center justify-between mb-3">
             <div class="flex items-center gap-2">
-              <!-- Estado de procesamiento -->
-              @if (procesando() || estadoCaptura() === 'capturando') {
-                <div class="animate-spin 
-                rounded-full w-5 h-5 border-b-2 border-blue-600"></div>
+              @if (procesando() || validandoRostro() || estadoCaptura() === 'capturando') {
+                <div class="animate-spin rounded-full w-5 h-5 border-b-2 border-blue-600"></div>
+              } @else if (modo === 'registro' && rostroDetectado()) {
+                <svg class="w-5 h-5 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+              } @else if (modo === 'identificacion' && estadoCaptura() === 'quietud') {
+                <svg class="w-5 h-5 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7.5 3.75H6A2.25 2.25 0 0 0 3.75 6v1.5M16.5 3.75H18A2.25 2.25 0 0 1 20.25 6v1.5m0 9V18A2.25 2.25 0 0 1 18 20.25h-1.5m-9 0H6A2.25 2.25 0 0 1 3.75 18v-1.5M15 12a3 3 0 1 1-6 0 3 3 0 0 1 6 0Z" />
+                </svg>
               } @else {
                 <svg class="w-5 h-5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  @if (estadoCaptura() === 'quietud'){
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7.5 3.75H6A2.25 2.25 0 0 0 3.75 6v1.5M16.5 3.75H18A2.25 2.25 0 0 1 20.25 6v1.5m0 9V18A2.25 2.25 0 0 1 18 20.25h-1.5m-9 0H6A2.25 2.25 0 0 1 3.75 18v-1.5M15 12a3 3 0 1 1-6 0 3 3 0 0 1 6 0Z" />
-                  } @else {
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" />
-                  }
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" />
                 </svg>
               }
-              <h3 class="text-sm font-semibold text-gray-900">Reconocimiento Facial</h3>
+              <h3 class="text-sm font-semibold text-gray-900">
+                {{ modo === 'registro' ? 'Registrar Rostro' : 'Reconocimiento Facial' }}
+              </h3>
             </div>
             <div class="flex items-center gap-2">
-              <!-- Botón minimizar -->
               <button
-                type="button" 
+                type="button"
                 (click)="toggleMinimizar()"
                 class="text-gray-400 hover:text-gray-600 transition-colors"
-                title="Minimizar (sigue activo)"
+                title="Minimizar"
               >
                 <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 12H4" />
                 </svg>
-              </button> 
-              <!-- Botón cerrar -->
+              </button>
               <button
                 type="button"
                 (click)="cerrar()"
                 class="text-gray-400 hover:text-gray-600 transition-colors"
+                title="Cerrar"
               >
                 <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
@@ -83,22 +93,99 @@
             </div>
           </div>
 
-          <!-- Vista de cámara - Copia visual del video oculto -->
+          <!-- Vista de cámara -->
           <div class="relative">
             <div class="w-full rounded-lg bg-black overflow-hidden" style="aspect-ratio: 4/3;">
-              <!-- Mostrar el stream usando CSS para duplicar el video oculto -->
               <div class="w-full h-full relative">
-                <!-- Espejo del video (se actualiza desde el video oculto) -->
                 <canvas #displayCanvas class="w-full h-full"></canvas>
-                <!-- Guía visual -->
+
+                <!-- Guía visual - cambia color según estado -->
                 <div class="absolute inset-0 flex items-center justify-center pointer-events-none">
-                  <div class="border-4 border-green-400 border-dashed rounded-full opacity-50 aspect-square"
-                      style="height: 90%;"></div>
+                  <div class="border-4 border-dashed rounded-full opacity-60 aspect-square transition-colors"
+                       [class.border-green-400]="(modo === 'registro' && rostroDetectado()) || (modo === 'identificacion' && estadoCaptura() === 'quietud')"
+                       [class.border-gray-400]="!((modo === 'registro' && rostroDetectado()) || (modo === 'identificacion' && estadoCaptura() === 'quietud'))"
+                       style="height: 85%;"></div>
                 </div>
 
+                <!-- Indicador de estado en la esquina -->
+                @if (modo === 'registro') {
+                  @if (validandoRostro()) {
+                    <div class="absolute top-2 left-2 bg-yellow-500 text-white text-xs px-2 py-1 rounded-full flex items-center gap-1">
+                      <div class="w-3 h-3 animate-spin rounded-full border-b-2 border-white"></div>
+                      Detectando...
+                    </div>
+                  } @else if (rostroDetectado()) {
+                    <div class="absolute top-2 left-2 bg-green-500 text-white text-xs px-2 py-1 rounded-full flex items-center gap-1">
+                      <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+                      </svg>
+                      Rostro OK
+                    </div>
+                  }
+                } @else {
+                  <!-- Modo identificación -->
+                  @if (estadoCaptura() === 'capturando') {
+                    <div class="absolute top-2 left-2 bg-blue-500 text-white text-xs px-2 py-1 rounded-full flex items-center gap-1">
+                      <div class="w-3 h-3 animate-spin rounded-full border-b-2 border-white"></div>
+                      Capturando...
+                    </div>
+                  } @else if (estadoCaptura() === 'quietud') {
+                    <div class="absolute top-2 left-2 bg-green-500 text-white text-xs px-2 py-1 rounded-full flex items-center gap-1">
+                      <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+                      </svg>
+                      Listo
+                    </div>
+                  } @else if (estadoCaptura() === 'movimiento') {
+                    <div class="absolute top-2 left-2 bg-orange-500 text-white text-xs px-2 py-1 rounded-full">
+                      Movimiento...
+                    </div>
+                  }
+                }
               </div>
             </div>
           </div>
+
+          <!-- Mensaje de estado -->
+          <div class="mt-3 text-center">
+            <p class="text-sm"
+               [class.text-green-600]="(modo === 'registro' && rostroDetectado()) || (modo === 'identificacion' && estadoCaptura() === 'quietud')"
+               [class.text-gray-600]="!((modo === 'registro' && rostroDetectado()) || (modo === 'identificacion' && estadoCaptura() === 'quietud'))">
+              {{ mensajeEstado() }}
+            </p>
+          </div>
+
+          <!-- Botón de captura (solo en modo registro) -->
+          @if (modo === 'registro') {
+            <div class="mt-4">
+              <button
+                type="button"
+                (click)="capturarFoto()"
+                [disabled]="!rostroDetectado() || procesando()"
+                class="w-full py-3 px-4 rounded-lg font-semibold text-white transition-all flex items-center justify-center gap-2"
+                [class.bg-green-600]="rostroDetectado() && !procesando()"
+                [class.hover:bg-green-700]="rostroDetectado() && !procesando()"
+                [class.bg-gray-400]="!rostroDetectado() || procesando()"
+                [class.cursor-not-allowed]="!rostroDetectado() || procesando()"
+              >
+                @if (procesando()) {
+                  <div class="w-5 h-5 animate-spin rounded-full border-b-2 border-white"></div>
+                  Procesando...
+                } @else if (rostroDetectado()) {
+                  <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" />
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 13a3 3 0 11-6 0 3 3 0 016 0z" />
+                  </svg>
+                  Tomar Foto
+                } @else {
+                  <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                  </svg>
+                  Esperando rostro...
+                }
+              </button>
+            </div>
+          }
         </div>
       </div>
     }

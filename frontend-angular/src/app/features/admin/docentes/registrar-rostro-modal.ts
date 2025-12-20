@@ -4,13 +4,18 @@ import { WebcamCaptureComponent } from '../../../shared/components/webcam-captur
 import { ReconocimientoService } from '../../../core/services/reconocimiento.service';
 import { Docente } from '../../../shared/models/docente.model';
 
+interface FotoCapturada {
+  file: File;
+  preview: string;
+}
+
 @Component({
   selector: 'app-registrar-rostro-modal',
   standalone: true,
   imports: [CommonModule, WebcamCaptureComponent],
   template: `
     <div class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-      <div class="bg-white rounded-lg shadow-xl max-w-3xl w-full max-h-[90vh] overflow-y-auto">
+      <div class="bg-white rounded-lg shadow-xl max-w-4xl w-full max-h-[90vh] overflow-y-auto">
         <div class="p-6">
           <!-- Header -->
           <div class="flex items-center justify-between mb-4">
@@ -62,34 +67,29 @@ import { Docente } from '../../../shared/models/docente.model';
                   <h3 class="text-sm font-semibold text-gray-900">
                     Fotos ya registradas ({{ descriptoresExistentes().length }})
                   </h3>
-                  @if (descriptoresExistentes().length > 0) {
-                    <button
-                      type="button"
-                      (click)="limpiarTodosDescriptores()"
-                      [disabled]="eliminandoDescriptor()"
-                      class="text-xs text-red-600 hover:text-red-800 font-medium disabled:opacity-50"
-                    >
-                      Eliminar todas
-                    </button>
-                  }
+                  <button
+                    type="button"
+                    (click)="limpiarTodosDescriptores()"
+                    [disabled]="eliminandoDescriptor()"
+                    class="text-xs text-red-600 hover:text-red-800 font-medium disabled:opacity-50"
+                  >
+                    Eliminar todas
+                  </button>
                 </div>
-                <div class="grid grid-cols-3 gap-3">
+                <div class="grid grid-cols-4 gap-3">
                   @for (descriptor of descriptoresExistentes(); track $index) {
-                    <div class="relative bg-white border-2 border-gray-300 rounded-lg p-3 group">
-                      <div class="flex items-center justify-center h-20">
-                        <svg class="w-12 h-12 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <div class="relative bg-white border-2 border-gray-300 rounded-lg p-2 group">
+                      <div class="flex items-center justify-center h-16">
+                        <svg class="w-10 h-10 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
                         </svg>
                       </div>
-                      <div class="text-center mt-2">
-                        <p class="text-xs text-gray-600">Foto {{ $index + 1 }}</p>
-                      </div>
+                      <p class="text-xs text-gray-500 text-center">Foto {{ $index + 1 }}</p>
                       <button
                         type="button"
                         (click)="eliminarDescriptor($index)"
                         [disabled]="eliminandoDescriptor()"
-                        class="absolute top-1 right-1 bg-red-500 hover:bg-red-600 text-white rounded-full p-1 opacity-0 group-hover:opacity-100 transition-opacity disabled:opacity-50"
-                        title="Eliminar esta foto"
+                        class="absolute -top-2 -right-2 bg-red-500 hover:bg-red-600 text-white rounded-full p-1 opacity-0 group-hover:opacity-100 transition-opacity disabled:opacity-50"
                       >
                         <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
@@ -98,9 +98,6 @@ import { Docente } from '../../../shared/models/docente.model';
                     </div>
                   }
                 </div>
-                <p class="mt-3 text-xs text-gray-500">
-                  💡 Estas son las fotos utilizadas para el reconocimiento facial. Puedes eliminarlas individualmente o agregar más fotos.
-                </p>
               </div>
             }
           }
@@ -143,7 +140,7 @@ import { Docente } from '../../../shared/models/docente.model';
           @if (guardandoRostro()) {
             <div class="flex flex-col items-center justify-center py-12">
               <div class="animate-spin rounded-full h-16 w-16 border-b-2 border-green-600 mb-4"></div>
-              <p class="text-gray-600">Procesando fotos...</p>
+              <p class="text-gray-600">Procesando y guardando fotos...</p>
             </div>
           } @else if (success()) {
             <div class="flex justify-center mt-4">
@@ -157,56 +154,118 @@ import { Docente } from '../../../shared/models/docente.model';
             </div>
           } @else {
             @if (metodo() === 'webcam') {
-              <!-- Instrucciones Webcam -->
-              <div class="mb-4 bg-blue-50 border border-blue-200 rounded-lg p-4">
-                <p class="text-sm text-blue-800">
-                  <strong>Instrucciones:</strong> Capture 3 fotos del docente desde diferentes ángulos (frontal, ligeramente a la izquierda, ligeramente a la derecha) para mejor reconocimiento.
-                </p>
-              </div>
+              <!-- Modo Webcam -->
+              <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                <!-- Instrucciones y estado -->
+                <div>
+                  <div class="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-4">
+                    <h4 class="font-semibold text-blue-800 mb-2">Instrucciones:</h4>
+                    <ol class="text-sm text-blue-700 space-y-1 list-decimal list-inside">
+                      <li>Posicione su rostro dentro del círculo</li>
+                      <li>Espere a que se detecte el rostro (indicador verde)</li>
+                      <li>Presione "Tomar Foto" cuando esté listo</li>
+                      <li>Capture 3 fotos desde diferentes ángulos</li>
+                    </ol>
+                  </div>
 
-              @if (capturedImages().length < 3) {
-                <app-webcam-capture
-                  [captureInterval]="2000"
-                  (frameCaptured)="onImageCaptured($event)"
-                  (closed)="cancel()"
-                ></app-webcam-capture>
+                  <!-- Fotos capturadas -->
+                  <div class="bg-gray-50 border border-gray-200 rounded-lg p-4">
+                    <h4 class="font-semibold text-gray-800 mb-3">
+                      Fotos capturadas: {{ fotosCapturadas().length }}/3
+                    </h4>
 
-                <!-- Progress -->
-                <div class="mt-4 text-center">
-                  <p class="text-sm text-gray-600">
-                    Fotos capturadas: <span class="font-semibold text-blue-600">{{ capturedImages().length }}/3</span>
-                  </p>
-                  <p class="text-xs text-gray-500 mt-1">
-                    Capturando automáticamente cada 2 segundos...
-                  </p>
-                </div>
-              } @else {
-                <div class="text-center py-8">
-                  <svg class="w-16 h-16 text-green-600 mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-                  </svg>
-                  <p class="text-lg font-medium text-gray-900 mb-2">¡3 fotos capturadas!</p>
-                  <p class="text-sm text-gray-600 mb-6">Las fotos están listas para ser registradas</p>
-                  <div class="flex justify-center gap-3">
-                    <button
-                      type="button"
-                      (click)="resetarCaptura()"
-                      class="bg-gray-500 hover:bg-gray-600 text-white font-semibold py-2 px-4 rounded-lg transition duration-200"
-                    >
-                      Volver a capturar
-                    </button>
-                    <button
-                      type="button"
-                      (click)="guardarRostros()"
-                      class="bg-green-600 hover:bg-green-700 text-white font-semibold py-2 px-6 rounded-lg transition duration-200"
-                    >
-                      Guardar Rostros
-                    </button>
+                    @if (fotosCapturadas().length === 0) {
+                      <div class="text-center py-6 text-gray-500">
+                        <svg class="w-12 h-12 mx-auto mb-2 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" />
+                          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 13a3 3 0 11-6 0 3 3 0 016 0z" />
+                        </svg>
+                        <p class="text-sm">Aún no hay fotos capturadas</p>
+                      </div>
+                    } @else {
+                      <div class="grid grid-cols-3 gap-3">
+                        @for (foto of fotosCapturadas(); track $index) {
+                          <div class="relative group">
+                            <img [src]="foto.preview" alt="Foto {{ $index + 1 }}" class="w-full h-24 object-cover rounded-lg border-2 border-green-300">
+                            <div class="absolute bottom-1 left-1 bg-green-500 text-white text-xs px-1.5 py-0.5 rounded">
+                              {{ $index + 1 }}
+                            </div>
+                            <button
+                              type="button"
+                              (click)="eliminarFotoCapturada($index)"
+                              class="absolute -top-2 -right-2 bg-red-500 hover:bg-red-600 text-white rounded-full p-1 opacity-0 group-hover:opacity-100 transition-opacity"
+                            >
+                              <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                              </svg>
+                            </button>
+                          </div>
+                        }
+                      </div>
+                    }
+
+                    <!-- Botones de acción -->
+                    @if (fotosCapturadas().length >= 3) {
+                      <div class="mt-4 flex gap-3">
+                        <button
+                          type="button"
+                          (click)="limpiarFotosCapturadas()"
+                          class="flex-1 bg-gray-500 hover:bg-gray-600 text-white font-semibold py-2 px-4 rounded-lg transition"
+                        >
+                          Reiniciar
+                        </button>
+                        <button
+                          type="button"
+                          (click)="guardarRostros()"
+                          class="flex-1 bg-green-600 hover:bg-green-700 text-white font-semibold py-2 px-4 rounded-lg transition"
+                        >
+                          Guardar {{ fotosCapturadas().length }} Fotos
+                        </button>
+                      </div>
+                    }
                   </div>
                 </div>
+
+                <!-- Componente de webcam -->
+                <div class="flex items-center justify-center">
+                  @if (mostrarWebcam()) {
+                    <div class="text-center">
+                      <p class="text-sm text-gray-500 mb-2">
+                        La cámara aparece en la esquina inferior derecha
+                      </p>
+                      <button
+                        type="button"
+                        (click)="cerrarWebcam()"
+                        class="text-sm text-red-600 hover:text-red-700"
+                      >
+                        Cerrar cámara
+                      </button>
+                    </div>
+                  } @else {
+                    <button
+                      type="button"
+                      (click)="abrirWebcam()"
+                      class="bg-blue-600 hover:bg-blue-700 text-white font-semibold py-3 px-6 rounded-lg transition flex items-center gap-2"
+                    >
+                      <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" />
+                      </svg>
+                      Abrir Cámara
+                    </button>
+                  }
+                </div>
+              </div>
+
+              <!-- Webcam component (floating) -->
+              @if (mostrarWebcam()) {
+                <app-webcam-capture
+                  [modo]="'registro'"
+                  (frameCaptured)="onFotoCapturada($event)"
+                  (closed)="cerrarWebcam()"
+                ></app-webcam-capture>
               }
             } @else {
-              <!-- Subir Fotos -->
+              <!-- Modo Subir Fotos -->
               <div class="mb-4 bg-blue-50 border border-blue-200 rounded-lg p-4">
                 <p class="text-sm text-blue-800">
                   <strong>Instrucciones:</strong> Seleccione al menos 3 fotos del docente. Asegúrese de que las fotos muestren el rostro claramente y desde diferentes ángulos.
@@ -235,20 +294,19 @@ import { Docente } from '../../../shared/models/docente.model';
                 </button>
               </div>
 
-              <!-- Preview de imágenes seleccionadas -->
               @if (selectedFiles().length > 0) {
                 <div class="mt-6">
                   <p class="text-sm font-medium text-gray-700 mb-3">
                     Fotos seleccionadas: {{ selectedFiles().length }}
                   </p>
-                  <div class="grid grid-cols-3 gap-4">
+                  <div class="grid grid-cols-4 gap-4">
                     @for (file of selectedFiles(); track $index) {
                       <div class="relative group">
-                        <img [src]="getFilePreview($index)" alt="Preview" class="w-full h-32 object-cover rounded-lg border-2 border-gray-200">
+                        <img [src]="getFilePreview($index)" alt="Preview" class="w-full h-24 object-cover rounded-lg border-2 border-gray-200">
                         <button
                           type="button"
                           (click)="removeFile($index)"
-                          class="absolute top-1 right-1 bg-red-500 text-white rounded-full p-1 opacity-0 group-hover:opacity-100 transition-opacity"
+                          class="absolute -top-2 -right-2 bg-red-500 text-white rounded-full p-1 opacity-0 group-hover:opacity-100 transition-opacity"
                         >
                           <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
@@ -287,13 +345,20 @@ export class RegistrarRostroModal implements OnInit, OnDestroy {
   @Output() onClose = new EventEmitter<void>();
   @Output() onSuccess = new EventEmitter<void>();
 
-  metodo = signal<'webcam' | 'upload'>('upload');
+  metodo = signal<'webcam' | 'upload'>('webcam');
   guardandoRostro = signal(false);
   error = signal('');
   success = signal('');
-  capturedImages = signal<File[]>([]);
+
+  // Fotos capturadas desde webcam
+  fotosCapturadas = signal<FotoCapturada[]>([]);
+  mostrarWebcam = signal(false);
+
+  // Archivos subidos
   selectedFiles = signal<File[]>([]);
-  selectedFilesPreviews = signal<string[]>([]); // URLs de preview para archivos seleccionados
+  selectedFilesPreviews = signal<string[]>([]);
+
+  // Descriptores existentes
   descriptoresExistentes = signal<string[]>([]);
   cargandoDescriptores = signal(false);
   eliminandoDescriptor = signal(false);
@@ -305,8 +370,9 @@ export class RegistrarRostroModal implements OnInit, OnDestroy {
   }
 
   ngOnDestroy() {
-    // Limpiar URLs de blob para evitar memory leaks
+    // Limpiar URLs de blob
     this.selectedFilesPreviews().forEach(url => URL.revokeObjectURL(url));
+    this.fotosCapturadas().forEach(foto => URL.revokeObjectURL(foto.preview));
   }
 
   cargarDescriptoresExistentes() {
@@ -325,6 +391,76 @@ export class RegistrarRostroModal implements OnInit, OnDestroy {
     });
   }
 
+  // === Webcam Methods ===
+
+  abrirWebcam() {
+    this.mostrarWebcam.set(true);
+  }
+
+  cerrarWebcam() {
+    this.mostrarWebcam.set(false);
+  }
+
+  onFotoCapturada(file: File) {
+    const preview = URL.createObjectURL(file);
+    const fotos = this.fotosCapturadas();
+
+    if (fotos.length < 3) {
+      this.fotosCapturadas.set([...fotos, { file, preview }]);
+    }
+
+    // Auto-cerrar webcam después de 3 fotos
+    if (this.fotosCapturadas().length >= 3) {
+      this.cerrarWebcam();
+    }
+  }
+
+  eliminarFotoCapturada(index: number) {
+    const fotos = this.fotosCapturadas();
+    URL.revokeObjectURL(fotos[index].preview);
+    fotos.splice(index, 1);
+    this.fotosCapturadas.set([...fotos]);
+  }
+
+  limpiarFotosCapturadas() {
+    this.fotosCapturadas().forEach(foto => URL.revokeObjectURL(foto.preview));
+    this.fotosCapturadas.set([]);
+  }
+
+  // === Upload Methods ===
+
+  onFilesSelected(event: Event) {
+    const input = event.target as HTMLInputElement;
+    if (input.files) {
+      this.selectedFilesPreviews().forEach(url => URL.revokeObjectURL(url));
+
+      const filesArray = Array.from(input.files);
+      this.selectedFiles.set(filesArray);
+
+      const previews = filesArray.map(file => URL.createObjectURL(file));
+      this.selectedFilesPreviews.set(previews);
+    }
+  }
+
+  removeFile(index: number) {
+    const currentFiles = this.selectedFiles();
+    const currentPreviews = this.selectedFilesPreviews();
+
+    URL.revokeObjectURL(currentPreviews[index]);
+
+    currentFiles.splice(index, 1);
+    currentPreviews.splice(index, 1);
+
+    this.selectedFiles.set([...currentFiles]);
+    this.selectedFilesPreviews.set([...currentPreviews]);
+  }
+
+  getFilePreview(index: number): string {
+    return this.selectedFilesPreviews()[index] || '';
+  }
+
+  // === Descriptor Management ===
+
   eliminarDescriptor(index: number) {
     if (!confirm('¿Está seguro de eliminar esta foto registrada?')) {
       return;
@@ -334,13 +470,13 @@ export class RegistrarRostroModal implements OnInit, OnDestroy {
     this.error.set('');
 
     this.reconocimientoService.eliminarDescriptorDocente(this.docente().id, index).subscribe({
-      next: (response) => {
+      next: () => {
         this.eliminandoDescriptor.set(false);
         this.success.set('Foto eliminada exitosamente');
         this.cargarDescriptoresExistentes();
         setTimeout(() => this.success.set(''), 2000);
       },
-      error: (err) => {
+      error: () => {
         this.eliminandoDescriptor.set(false);
         this.error.set('Error al eliminar foto');
       }
@@ -356,63 +492,25 @@ export class RegistrarRostroModal implements OnInit, OnDestroy {
     this.error.set('');
 
     this.reconocimientoService.limpiarDescriptoresDocente(this.docente().id).subscribe({
-      next: (response) => {
+      next: () => {
         this.eliminandoDescriptor.set(false);
         this.success.set('Todas las fotos han sido eliminadas');
         this.cargarDescriptoresExistentes();
         setTimeout(() => this.success.set(''), 2000);
       },
-      error: (err) => {
+      error: () => {
         this.eliminandoDescriptor.set(false);
         this.error.set('Error al eliminar fotos');
       }
     });
   }
 
-  onImageCaptured(imageFile: File) {
-    const current = this.capturedImages();
-    this.capturedImages.set([...current, imageFile]);
-  }
-
-  onFilesSelected(event: Event) {
-    const input = event.target as HTMLInputElement;
-    if (input.files) {
-      // Limpiar URLs antiguas
-      this.selectedFilesPreviews().forEach(url => URL.revokeObjectURL(url));
-
-      const filesArray = Array.from(input.files);
-      this.selectedFiles.set(filesArray);
-
-      // Crear nuevas URLs de preview
-      const previews = filesArray.map(file => URL.createObjectURL(file));
-      this.selectedFilesPreviews.set(previews);
-    }
-  }
-
-  removeFile(index: number) {
-    const currentFiles = this.selectedFiles();
-    const currentPreviews = this.selectedFilesPreviews();
-
-    // Liberar la URL del archivo eliminado
-    URL.revokeObjectURL(currentPreviews[index]);
-
-    currentFiles.splice(index, 1);
-    currentPreviews.splice(index, 1);
-
-    this.selectedFiles.set([...currentFiles]);
-    this.selectedFilesPreviews.set([...currentPreviews]);
-  }
-
-  getFilePreview(index: number): string {
-    return this.selectedFilesPreviews()[index] || '';
-  }
-
-  resetarCaptura() {
-    this.capturedImages.set([]);
-  }
+  // === Save ===
 
   guardarRostros() {
-    const files = this.metodo() === 'webcam' ? this.capturedImages() : this.selectedFiles();
+    const files = this.metodo() === 'webcam'
+      ? this.fotosCapturadas().map(f => f.file)
+      : this.selectedFiles();
 
     if (files.length < 3) {
       this.error.set('Se requieren al menos 3 fotos del docente');
@@ -423,27 +521,21 @@ export class RegistrarRostroModal implements OnInit, OnDestroy {
     this.error.set('');
     this.success.set('');
 
-    const docenteData = this.docente();
-    this.reconocimientoService.registrarRostroDocente(docenteData.id, files).subscribe({
+    this.reconocimientoService.registrarRostroDocente(this.docente().id, files).subscribe({
       next: (response) => {
         this.guardandoRostro.set(false);
         this.success.set(response.message || 'Rostros registrados exitosamente');
         this.onSuccess.emit();
 
-        // Recargar descriptores para mostrar las nuevas fotos
         this.cargarDescriptoresExistentes();
 
-        // Limpiar URLs de blob
+        // Limpiar
+        this.limpiarFotosCapturadas();
         this.selectedFilesPreviews().forEach(url => URL.revokeObjectURL(url));
-
-        // Limpiar las fotos capturadas/seleccionadas
-        this.capturedImages.set([]);
         this.selectedFiles.set([]);
         this.selectedFilesPreviews.set([]);
 
-        setTimeout(() => {
-          this.success.set('');
-        }, 3000);
+        setTimeout(() => this.success.set(''), 3000);
       },
       error: (err) => {
         this.guardandoRostro.set(false);
@@ -455,10 +547,12 @@ export class RegistrarRostroModal implements OnInit, OnDestroy {
   }
 
   cancel() {
+    this.cerrarWebcam();
     this.onClose.emit();
   }
 
   close() {
+    this.cerrarWebcam();
     this.onClose.emit();
   }
 }
