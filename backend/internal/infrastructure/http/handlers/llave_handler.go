@@ -2,12 +2,13 @@ package handlers
 
 import (
 	"encoding/json"
+	"log"
 	"net/http"
-	"strconv"
 
 	"github.com/gorilla/mux"
 	"github.com/sistema-ingreso-docente/backend/internal/domain/entities"
 	"github.com/sistema-ingreso-docente/backend/internal/domain/usecases"
+	"github.com/sistema-ingreso-docente/backend/internal/infrastructure/security"
 )
 
 type LlaveHandler struct {
@@ -33,7 +34,7 @@ func (h *LlaveHandler) GetAll(w http.ResponseWriter, r *http.Request) {
 
 func (h *LlaveHandler) GetByID(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
-	id, err := strconv.Atoi(vars["id"])
+	id, err := security.ValidateID(vars["id"])
 	if err != nil {
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusBadRequest)
@@ -134,7 +135,7 @@ func (h *LlaveHandler) Create(w http.ResponseWriter, r *http.Request) {
 
 func (h *LlaveHandler) Update(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
-	id, err := strconv.Atoi(vars["id"])
+	id, err := security.ValidateID(vars["id"])
 	if err != nil {
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusBadRequest)
@@ -162,6 +163,13 @@ func (h *LlaveHandler) Update(w http.ResponseWriter, r *http.Request) {
 
 	// Actualizar solo los campos proporcionados
 	if codigo, ok := updateData["codigo"].(string); ok {
+		// Validar longitud de código
+		if err := security.ValidateCodigo(codigo); err != nil {
+			w.Header().Set("Content-Type", "application/json")
+			w.WriteHeader(http.StatusBadRequest)
+			json.NewEncoder(w).Encode(ApiResponse{Error: err.Error()})
+			return
+		}
 		// Verificar si el nuevo código ya existe en otra llave
 		if codigo != existingLlave.Codigo {
 			duplicate, _ := h.llaveUseCase.GetByCodigo(codigo)
@@ -175,22 +183,48 @@ func (h *LlaveHandler) Update(w http.ResponseWriter, r *http.Request) {
 		existingLlave.Codigo = codigo
 	}
 	if aulaCodigo, ok := updateData["aula_codigo"].(string); ok {
+		if err := security.ValidateCodigo(aulaCodigo); err != nil {
+			w.Header().Set("Content-Type", "application/json")
+			w.WriteHeader(http.StatusBadRequest)
+			json.NewEncoder(w).Encode(ApiResponse{Error: "Código de aula inválido"})
+			return
+		}
 		existingLlave.AulaCodigo = aulaCodigo
 	}
 	if aulaNombre, ok := updateData["aula_nombre"].(string); ok {
+		if err := security.ValidateNombreCompleto(aulaNombre); err != nil {
+			w.Header().Set("Content-Type", "application/json")
+			w.WriteHeader(http.StatusBadRequest)
+			json.NewEncoder(w).Encode(ApiResponse{Error: "Nombre de aula demasiado largo"})
+			return
+		}
 		existingLlave.AulaNombre = aulaNombre
 	}
 	if estado, ok := updateData["estado"].(string); ok {
-		existingLlave.Estado = entities.EstadoLlave(estado)
+		estadoLlave := entities.EstadoLlave(estado)
+		if !estadoLlave.IsValid() {
+			w.Header().Set("Content-Type", "application/json")
+			w.WriteHeader(http.StatusBadRequest)
+			json.NewEncoder(w).Encode(ApiResponse{Error: "Estado inválido. Valores permitidos: disponible, en_uso, extraviada, inactiva"})
+			return
+		}
+		existingLlave.Estado = estadoLlave
 	}
 	if descripcion, ok := updateData["descripcion"].(string); ok {
+		if err := security.ValidateDescripcion(descripcion); err != nil {
+			w.Header().Set("Content-Type", "application/json")
+			w.WriteHeader(http.StatusBadRequest)
+			json.NewEncoder(w).Encode(ApiResponse{Error: "Descripción demasiado larga"})
+			return
+		}
 		existingLlave.Descripcion = &descripcion
 	}
 
 	if err := h.llaveUseCase.Update(existingLlave); err != nil {
+		log.Printf("[ERROR] Error actualizando llave %d: %v", id, err)
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusBadRequest)
-		json.NewEncoder(w).Encode(ApiResponse{Error: err.Error()})
+		json.NewEncoder(w).Encode(ApiResponse{Error: "Error al actualizar llave"})
 		return
 	}
 
@@ -200,7 +234,7 @@ func (h *LlaveHandler) Update(w http.ResponseWriter, r *http.Request) {
 
 func (h *LlaveHandler) UpdateEstado(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
-	id, err := strconv.Atoi(vars["id"])
+	id, err := security.ValidateID(vars["id"])
 	if err != nil {
 		http.Error(w, `{"error":"ID invalido"}`, http.StatusBadRequest)
 		return
@@ -214,8 +248,15 @@ func (h *LlaveHandler) UpdateEstado(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// Validar estado
+	if !req.Estado.IsValid() {
+		http.Error(w, `{"error":"Estado inválido"}`, http.StatusBadRequest)
+		return
+	}
+
 	if err := h.llaveUseCase.UpdateEstado(id, req.Estado); err != nil {
-		http.Error(w, `{"error":"`+err.Error()+`"}`, http.StatusBadRequest)
+		log.Printf("[ERROR] Error actualizando estado de llave %d: %v", id, err)
+		http.Error(w, `{"error":"Error al actualizar estado"}`, http.StatusBadRequest)
 		return
 	}
 
@@ -226,7 +267,7 @@ func (h *LlaveHandler) UpdateEstado(w http.ResponseWriter, r *http.Request) {
 
 func (h *LlaveHandler) Delete(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
-	id, err := strconv.Atoi(vars["id"])
+	id, err := security.ValidateID(vars["id"])
 	if err != nil {
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusBadRequest)
@@ -235,6 +276,7 @@ func (h *LlaveHandler) Delete(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if err := h.llaveUseCase.Delete(id); err != nil {
+		log.Printf("[ERROR] Error eliminando llave %d: %v", id, err)
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusInternalServerError)
 		json.NewEncoder(w).Encode(ApiResponse{Error: "Error eliminando llave"})

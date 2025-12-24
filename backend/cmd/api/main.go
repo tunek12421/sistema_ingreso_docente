@@ -17,15 +17,20 @@ import (
 
 func main() {
 	// Forzar uso de UTC para todas las operaciones de tiempo
-	// Esto asegura timestamps consistentes independientemente de la ubicación del servidor
 	os.Setenv("TZ", "UTC")
 	time.Local = time.UTC
-	log.Println("Zona horaria configurada a UTC")
 
 	// Cargar variables de entorno desde archivo .env
 	if err := godotenv.Load("../.env"); err != nil {
 		log.Println("No se encontró archivo .env, usando variables de entorno del sistema")
 	}
+
+	// Log del entorno actual
+	env := os.Getenv("GO_ENV")
+	if env == "" {
+		env = "development"
+	}
+	log.Printf("Iniciando servidor en modo: %s", env)
 
 	// Conexión a la base de datos
 	db, err := database.NewConnection()
@@ -70,15 +75,31 @@ func main() {
 
 	// Configurar router
 	r := mux.NewRouter()
-	routes.Setup(r, handlersGroup)
 
-	// Aplicar CORS
-	corsHandler := middleware.CORS().Handler(r)
+	// Rate limiter para login (5 intentos por minuto por IP)
+	loginLimiter := middleware.NewRateLimiter(5, time.Minute)
+
+	// Configurar rutas con rate limiting en login
+	routes.SetupWithRateLimiter(r, handlersGroup, loginLimiter)
+
+	// Aplicar middlewares en orden:
+	// 1. Audit Log (primero para registrar todas las peticiones)
+	// 2. Security Headers
+	// 3. CORS (debe estar antes de la lógica de negocio)
+	var handler http.Handler = r
+	handler = middleware.AuditLog(handler)
+	handler = middleware.SecurityHeaders(handler)
+	handler = middleware.CORS().Handler(handler)
 
 	// Iniciar servidor
 	port := getEnv("PORT", "8080")
 	log.Printf("Servidor iniciado en puerto %s", port)
-	log.Fatal(http.ListenAndServe(":"+port, corsHandler))
+
+	if env == "production" {
+		log.Println("CORS configurado para:", os.Getenv("ALLOWED_ORIGINS"))
+	}
+
+	log.Fatal(http.ListenAndServe(":"+port, handler))
 }
 
 func getEnv(key, defaultValue string) string {

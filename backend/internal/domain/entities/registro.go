@@ -9,6 +9,17 @@ const (
 	TipoSalida  TipoRegistro = "salida"
 )
 
+// TiposRegistroValidos contiene los tipos válidos
+var TiposRegistroValidos = map[TipoRegistro]bool{
+	TipoIngreso: true,
+	TipoSalida:  true,
+}
+
+// IsValid verifica si el tipo de registro es válido
+func (t TipoRegistro) IsValid() bool {
+	return TiposRegistroValidos[t]
+}
+
 type Registro struct {
 	ID             int          `json:"id"`
 	DocenteID      int          `json:"docente_id"`

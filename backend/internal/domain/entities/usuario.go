@@ -12,6 +12,20 @@ const (
 	RolDocente       Rol = "docente"
 )
 
+// RolesValidos contiene todos los roles válidos del sistema
+var RolesValidos = map[Rol]bool{
+	RolAdministrador: true,
+	RolJefeCarrera:   true,
+	RolBibliotecario: true,
+	RolBecario:       true,
+	RolDocente:       true,
+}
+
+// IsValid verifica si el rol es válido
+func (r Rol) IsValid() bool {
+	return RolesValidos[r]
+}
+
 type Usuario struct {
 	ID             int       `json:"id"`
 	Username       string    `json:"username"`

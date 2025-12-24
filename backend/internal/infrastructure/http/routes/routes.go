@@ -19,10 +19,12 @@ type Handlers struct {
 	Reconocimiento *handlers.ReconocimientoHandler
 }
 
-func Setup(r *mux.Router, h *Handlers) {
-	// Public routes
-	r.HandleFunc("/login", h.Auth.Login).Methods("POST")
+// SetupWithRateLimiter configura las rutas con rate limiting en endpoints sensibles
+func SetupWithRateLimiter(r *mux.Router, h *Handlers, loginLimiter *middleware.RateLimiter) {
+	// Public routes con rate limiting
+	r.HandleFunc("/login", loginLimiter.LimitHandler(h.Auth.Login)).Methods("POST")
 	r.HandleFunc("/health", func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
 		w.Write([]byte(`{"status":"ok"}`))
 	}).Methods("GET")
 
@@ -102,4 +104,9 @@ func Setup(r *mux.Router, h *Handlers) {
 	api.Handle("/docentes/{id}/rostro", middleware.RequireRole(entities.RolAdministrador)(http.HandlerFunc(h.Reconocimiento.ObtenerDescriptoresDocente))).Methods("GET")
 	api.Handle("/docentes/{id}/rostro/{index}", middleware.RequireRole(entities.RolAdministrador)(http.HandlerFunc(h.Reconocimiento.EliminarDescriptorDocente))).Methods("DELETE")
 	api.Handle("/docentes/{id}/rostro", middleware.RequireRole(entities.RolAdministrador)(http.HandlerFunc(h.Reconocimiento.LimpiarDescriptoresDocente))).Methods("DELETE")
+}
+
+// Setup mantiene compatibilidad con código existente (sin rate limiting)
+func Setup(r *mux.Router, h *Handlers) {
+	SetupWithRateLimiter(r, h, middleware.NewRateLimiter(100, 60000000000)) // 100 req/min por defecto
 }

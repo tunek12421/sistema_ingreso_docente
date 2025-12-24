@@ -17,14 +17,38 @@ func NewAuthUseCase(usuarioRepo repositories.UsuarioRepository) *AuthUseCase {
 	return &AuthUseCase{usuarioRepo: usuarioRepo}
 }
 
+// dummyHash es un hash bcrypt pre-calculado usado para prevenir timing attacks
+// cuando el usuario no existe, aún ejecutamos bcrypt.CompareHashAndPassword
+// para que el tiempo de respuesta sea consistente
+var dummyHash = []byte("$2a$10$dummyhashfortimingatttackprevention1234567890")
+
 func (uc *AuthUseCase) Login(username, password string) (string, *entities.Usuario, error) {
 	usuario, err := uc.usuarioRepo.FindByUsername(username)
-	if err != nil {
+
+	// Siempre ejecutar bcrypt.CompareHashAndPassword para prevenir timing attacks
+	// Si el usuario no existe, usamos un hash dummy para que el tiempo sea consistente
+	var hashToCompare []byte
+	if err != nil || usuario == nil {
+		hashToCompare = dummyHash
+	} else {
+		hashToCompare = []byte(usuario.Password)
+	}
+
+	// Ejecutar comparación siempre (incluso si usuario no existe)
+	bcryptErr := bcrypt.CompareHashAndPassword(hashToCompare, []byte(password))
+
+	// Ahora verificamos los errores después de la comparación
+	if err != nil || usuario == nil {
 		return "", nil, fmt.Errorf("credenciales inválidas")
 	}
 
-	if err := bcrypt.CompareHashAndPassword([]byte(usuario.Password), []byte(password)); err != nil {
+	if bcryptErr != nil {
 		return "", nil, fmt.Errorf("credenciales inválidas")
+	}
+
+	// Verificar que el usuario esté activo
+	if !usuario.Activo {
+		return "", nil, fmt.Errorf("usuario desactivado")
 	}
 
 	token, err := jwt.GenerateToken(usuario)

@@ -4,14 +4,24 @@ import (
 	"database/sql"
 	"encoding/json"
 	"fmt"
+	"log"
 	"net/http"
-	"strconv"
 	"time"
 
 	"github.com/gorilla/mux"
 	"github.com/sistema-ingreso-docente/backend/internal/application/dto"
 	"github.com/sistema-ingreso-docente/backend/internal/domain/entities"
 	"github.com/sistema-ingreso-docente/backend/internal/domain/usecases"
+	"github.com/sistema-ingreso-docente/backend/internal/infrastructure/http/middleware"
+	"github.com/sistema-ingreso-docente/backend/internal/infrastructure/jwt"
+	"github.com/sistema-ingreso-docente/backend/internal/infrastructure/security"
+)
+
+// Constantes de seguridad para edición de registros
+const (
+	// MaxEditWindowHours define cuántas horas después de creado se puede editar un registro
+	// sin ser jefe de carrera
+	MaxEditWindowHours = 24
 )
 
 type RegistroHandler struct {
@@ -298,9 +308,16 @@ func (h *RegistroHandler) GetLlaveActual(w http.ResponseWriter, r *http.Request)
 // Update permite al Bibliotecario o Jefe de Carrera editar/corregir registros
 func (h *RegistroHandler) Update(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
-	id, err := strconv.Atoi(vars["id"])
+	id, err := security.ValidateID(vars["id"])
 	if err != nil {
 		http.Error(w, `{"error":"ID inválido"}`, http.StatusBadRequest)
+		return
+	}
+
+	// Obtener claims del usuario autenticado
+	claims, ok := r.Context().Value(middleware.UserContextKey).(*jwt.Claims)
+	if !ok || claims == nil {
+		http.Error(w, `{"error":"No autorizado"}`, http.StatusUnauthorized)
 		return
 	}
 
@@ -309,6 +326,16 @@ func (h *RegistroHandler) Update(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		http.Error(w, `{"error":"Registro no encontrado"}`, http.StatusNotFound)
 		return
+	}
+
+	// SEGURIDAD: Validar ventana temporal de edición
+	// Solo Jefe de Carrera o Administrador pueden editar registros antiguos
+	horasDesdeCreacion := time.Since(registroActual.FechaHora).Hours()
+	if horasDesdeCreacion > MaxEditWindowHours {
+		if claims.Rol != entities.RolJefeCarrera && claims.Rol != entities.RolAdministrador {
+			http.Error(w, `{"error":"Solo puede editar registros de las últimas 24 horas"}`, http.StatusForbidden)
+			return
+		}
 	}
 
 	// Guardar copia del registro anterior para sincronización de llaves
@@ -331,8 +358,20 @@ func (h *RegistroHandler) Update(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// Validar observaciones si se proporcionan
+	if req.Observaciones != nil {
+		if err := security.ValidateDescripcion(*req.Observaciones); err != nil {
+			http.Error(w, `{"error":"Observaciones demasiado largas"}`, http.StatusBadRequest)
+			return
+		}
+	}
+
 	// Actualizar solo los campos proporcionados
 	if req.DocenteID != nil {
+		if *req.DocenteID <= 0 {
+			http.Error(w, `{"error":"docente_id inválido"}`, http.StatusBadRequest)
+			return
+		}
 		registroActual.DocenteID = *req.DocenteID
 	}
 
@@ -349,30 +388,46 @@ func (h *RegistroHandler) Update(w http.ResponseWriter, r *http.Request) {
 	if req.QuitarLlave {
 		registroActual.LlaveID = nil
 	} else if req.LlaveID != nil {
+		if *req.LlaveID <= 0 {
+			http.Error(w, `{"error":"llave_id inválido"}`, http.StatusBadRequest)
+			return
+		}
 		registroActual.LlaveID = req.LlaveID
 	}
 
 	if req.TurnoID != nil {
+		if *req.TurnoID <= 0 {
+			http.Error(w, `{"error":"turno_id inválido"}`, http.StatusBadRequest)
+			return
+		}
 		registroActual.TurnoID = *req.TurnoID
 	}
 
 	if req.Tipo != nil {
-		registroActual.Tipo = entities.TipoRegistro(*req.Tipo)
+		tipoRegistro := entities.TipoRegistro(*req.Tipo)
+		if !tipoRegistro.IsValid() {
+			http.Error(w, `{"error":"Tipo inválido. Valores permitidos: ingreso, salida"}`, http.StatusBadRequest)
+			return
+		}
+		registroActual.Tipo = tipoRegistro
 	}
 
 	if req.Observaciones != nil {
 		registroActual.Observaciones = req.Observaciones
 	}
 
-	if req.EditadoPor != nil {
-		registroActual.EditadoPor = req.EditadoPor
-	}
+	// SEGURIDAD: Forzar editado_por desde JWT (no confiar en el request)
+	registroActual.EditadoPor = &claims.UserID
 
 	// Guardar cambios con sincronización de estados de llaves
 	if err := h.registroUseCase.UpdateConSincronizacionLlaves(registroAnterior, registroActual); err != nil {
-		http.Error(w, fmt.Sprintf(`{"error":"%s"}`, err.Error()), http.StatusInternalServerError)
+		log.Printf("[ERROR] Error actualizando registro %d por usuario %d: %v", id, claims.UserID, err)
+		http.Error(w, `{"error":"Error al actualizar registro"}`, http.StatusInternalServerError)
 		return
 	}
+
+	// Log de auditoría
+	log.Printf("[AUDIT] Usuario %d (%s) editó registro %d", claims.UserID, claims.Username, id)
 
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(registroActual)
@@ -381,9 +436,16 @@ func (h *RegistroHandler) Update(w http.ResponseWriter, r *http.Request) {
 // Delete elimina un registro y sincroniza el estado de la llave si es necesario
 func (h *RegistroHandler) Delete(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
-	id, err := strconv.Atoi(vars["id"])
+	id, err := security.ValidateID(vars["id"])
 	if err != nil {
 		http.Error(w, `{"error":"ID inválido"}`, http.StatusBadRequest)
+		return
+	}
+
+	// Obtener claims del usuario autenticado
+	claims, ok := r.Context().Value(middleware.UserContextKey).(*jwt.Claims)
+	if !ok || claims == nil {
+		http.Error(w, `{"error":"No autorizado"}`, http.StatusUnauthorized)
 		return
 	}
 
@@ -394,11 +456,25 @@ func (h *RegistroHandler) Delete(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// SEGURIDAD: Validar ventana temporal de eliminación
+	// Solo Jefe de Carrera o Administrador pueden eliminar registros antiguos
+	horasDesdeCreacion := time.Since(registro.FechaHora).Hours()
+	if horasDesdeCreacion > MaxEditWindowHours {
+		if claims.Rol != entities.RolJefeCarrera && claims.Rol != entities.RolAdministrador {
+			http.Error(w, `{"error":"Solo puede eliminar registros de las últimas 24 horas"}`, http.StatusForbidden)
+			return
+		}
+	}
+
 	// Eliminar con sincronización de estado de llave
 	if err := h.registroUseCase.DeleteConSincronizacionLlave(registro); err != nil {
-		http.Error(w, fmt.Sprintf(`{"error":"%s"}`, err.Error()), http.StatusInternalServerError)
+		log.Printf("[ERROR] Error eliminando registro %d por usuario %d: %v", id, claims.UserID, err)
+		http.Error(w, `{"error":"Error al eliminar registro"}`, http.StatusInternalServerError)
 		return
 	}
+
+	// Log de auditoría
+	log.Printf("[AUDIT] Usuario %d (%s) eliminó registro %d", claims.UserID, claims.Username, id)
 
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)

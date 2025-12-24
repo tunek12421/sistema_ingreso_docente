@@ -1,20 +1,55 @@
 package handlers
 
 import (
+	"crypto/rand"
+	"encoding/hex"
 	"encoding/json"
 	"fmt"
 	"io"
+	"log"
 	"mime/multipart"
 	"net/http"
 	"os"
 	"path/filepath"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/gorilla/mux"
 	"github.com/sistema-ingreso-docente/backend/internal/domain/repositories"
 	"github.com/sistema-ingreso-docente/backend/internal/recognition"
 )
+
+// Extensiones de imagen permitidas
+var allowedImageExtensions = map[string]bool{
+	".jpg":  true,
+	".jpeg": true,
+	".png":  true,
+	".gif":  true,
+	".webp": true,
+}
+
+// generateSafeFilename genera un nombre de archivo seguro y único
+func generateSafeFilename(prefix string, originalExt string) string {
+	// Generar ID único
+	bytes := make([]byte, 8)
+	rand.Read(bytes)
+	uniqueID := hex.EncodeToString(bytes)
+
+	// Sanitizar extensión
+	ext := strings.ToLower(originalExt)
+	if !allowedImageExtensions[ext] {
+		ext = ".jpg" // Default seguro
+	}
+
+	return fmt.Sprintf("%s_%d_%s%s", prefix, time.Now().UnixNano(), uniqueID, ext)
+}
+
+// validateImageExtension verifica que la extensión sea permitida
+func validateImageExtension(filename string) bool {
+	ext := strings.ToLower(filepath.Ext(filename))
+	return allowedImageExtensions[ext]
+}
 
 type ReconocimientoHandler struct {
 	docenteRepo repositories.DocenteRepository
@@ -260,9 +295,10 @@ func (h *ReconocimientoHandler) RegistrarRostroDocente(w http.ResponseWriter, r 
 		return
 	}
 
-	err = r.ParseMultipartForm(50 << 20) // 50 MB max para múltiples archivos
+	// SEGURIDAD: Límite de 20MB total (máx 5 imágenes de 4MB cada una)
+	err = r.ParseMultipartForm(20 << 20)
 	if err != nil {
-		h.sendError(w, http.StatusBadRequest, "Error al parsear form")
+		h.sendError(w, http.StatusBadRequest, "Error al parsear form o archivo demasiado grande")
 		return
 	}
 
@@ -274,9 +310,25 @@ func (h *ReconocimientoHandler) RegistrarRostroDocente(w http.ResponseWriter, r 
 		return
 	}
 
+	// SEGURIDAD: Limitar número de archivos
+	const maxImages = 10
+	if len(files) > maxImages {
+		h.sendError(w, http.StatusBadRequest, fmt.Sprintf("Máximo %d imágenes permitidas", maxImages))
+		return
+	}
+
 	if len(files) < 3 {
 		h.sendError(w, http.StatusBadRequest, "Se requieren al menos 3 fotos del docente")
 		return
+	}
+
+	// SEGURIDAD: Validar tamaño individual de cada archivo (máx 4MB por imagen)
+	const maxImageSize = 4 << 20 // 4MB
+	for _, fileHeader := range files {
+		if fileHeader.Size > maxImageSize {
+			h.sendError(w, http.StatusBadRequest, "Cada imagen debe ser menor a 4MB")
+			return
+		}
 	}
 
 	rec, err := recognition.NewRecognizer()
@@ -291,13 +343,21 @@ func (h *ReconocimientoHandler) RegistrarRostroDocente(w http.ResponseWriter, r 
 
 	facesProcessed := 0
 	for i, fileHeader := range files {
+		// Validar extensión
+		if !validateImageExtension(fileHeader.Filename) {
+			log.Printf("[SECURITY] Archivo con extensión no permitida ignorado: %s", fileHeader.Filename)
+			continue
+		}
+
 		file, err := fileHeader.Open()
 		if err != nil {
 			continue
 		}
 		defer file.Close()
 
-		tempFile := filepath.Join(tempDir, fmt.Sprintf("docente_%d_photo_%d_%s", docenteID, i, fileHeader.Filename))
+		// Generar nombre seguro
+		safeFilename := generateSafeFilename(fmt.Sprintf("docente_%d_photo_%d", docenteID, i), filepath.Ext(fileHeader.Filename))
+		tempFile := filepath.Join(tempDir, safeFilename)
 		dst, err := os.Create(tempFile)
 		if err != nil {
 			continue
@@ -357,9 +417,10 @@ func (h *ReconocimientoHandler) RegistrarRostroDocente(w http.ResponseWriter, r 
 
 // Helper methods
 func (h *ReconocimientoHandler) processUploadedImage(r *http.Request) (io.ReadCloser, *multipart.FileHeader, string, error) {
-	err := r.ParseMultipartForm(10 << 20)
+	// SEGURIDAD: Límite de 5MB para una sola imagen
+	err := r.ParseMultipartForm(5 << 20)
 	if err != nil {
-		return nil, nil, "", fmt.Errorf("error al parsear form")
+		return nil, nil, "", fmt.Errorf("error al parsear form o archivo demasiado grande")
 	}
 
 	file, header, err := r.FormFile("image")
@@ -367,10 +428,36 @@ func (h *ReconocimientoHandler) processUploadedImage(r *http.Request) (io.ReadCl
 		return nil, nil, "", fmt.Errorf("no se encontró imagen en la petición")
 	}
 
+	// SEGURIDAD: Validar tamaño del archivo (máx 4MB)
+	const maxImageSize = 4 << 20 // 4MB
+	if header.Size > maxImageSize {
+		file.Close()
+		return nil, nil, "", fmt.Errorf("imagen demasiado grande (máx 4MB)")
+	}
+
+	// Validar extensión de archivo
+	if !validateImageExtension(header.Filename) {
+		file.Close()
+		log.Printf("[SECURITY] Intento de subir archivo con extensión no permitida: %s", header.Filename)
+		return nil, nil, "", fmt.Errorf("tipo de archivo no permitido")
+	}
+
 	tempDir := "./temp"
 	os.MkdirAll(tempDir, 0755)
 
-	tempFile := filepath.Join(tempDir, header.Filename)
+	// Generar nombre de archivo seguro (evita path traversal)
+	safeFilename := generateSafeFilename("upload", filepath.Ext(header.Filename))
+	tempFile := filepath.Join(tempDir, safeFilename)
+
+	// Verificar que el path está dentro del directorio temporal
+	absPath, _ := filepath.Abs(tempFile)
+	absTempDir, _ := filepath.Abs(tempDir)
+	if !strings.HasPrefix(absPath, absTempDir) {
+		file.Close()
+		log.Printf("[SECURITY] Intento de path traversal detectado: %s", header.Filename)
+		return nil, nil, "", fmt.Errorf("nombre de archivo inválido")
+	}
+
 	dst, err := os.Create(tempFile)
 	if err != nil {
 		file.Close()

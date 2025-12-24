@@ -3,9 +3,18 @@ package database
 import (
 	"database/sql"
 	"fmt"
+	"strings"
 
 	"github.com/sistema-ingreso-docente/backend/internal/domain/entities"
 )
+
+// escapeLikePatternLlave escapa caracteres especiales de LIKE/ILIKE
+func escapeLikePatternLlave(pattern string) string {
+	pattern = strings.ReplaceAll(pattern, "\\", "\\\\")
+	pattern = strings.ReplaceAll(pattern, "%", "\\%")
+	pattern = strings.ReplaceAll(pattern, "_", "\\_")
+	return pattern
+}
 
 type LlaveRepositoryImpl struct {
 	db *sql.DB
@@ -107,7 +116,8 @@ func (r *LlaveRepositoryImpl) Search(query string) ([]*entities.Llave, error) {
 	             ORDER BY codigo
 	             LIMIT 10`
 
-	searchPattern := "%" + query + "%"
+	// Escapar caracteres especiales de ILIKE para prevenir inyección
+	searchPattern := "%" + escapeLikePatternLlave(query) + "%"
 	rows, err := r.db.Query(sqlQuery, searchPattern)
 	if err != nil {
 		return nil, err

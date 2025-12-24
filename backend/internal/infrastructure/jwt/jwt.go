@@ -1,7 +1,10 @@
 package jwt
 
 import (
+	"crypto/rand"
+	"encoding/base64"
 	"fmt"
+	"log"
 	"os"
 	"time"
 
@@ -16,7 +19,51 @@ type Claims struct {
 	jwt.RegisteredClaims
 }
 
-var jwtSecret = []byte(getEnv("JWT_SECRET", "tu_clave_secreta_muy_segura_cambiar_en_produccion"))
+var jwtSecret []byte
+
+func init() {
+	secret := os.Getenv("JWT_SECRET")
+
+	// En producción, JWT_SECRET es obligatorio
+	if secret == "" {
+		env := os.Getenv("GO_ENV")
+		if env == "production" {
+			log.Fatal("FATAL: JWT_SECRET no configurado en producción")
+		}
+		// Solo en desarrollo generar secreto temporal
+		secret = generateRandomSecret()
+		log.Printf("ADVERTENCIA: Usando JWT_SECRET temporal para desarrollo. NO usar en producción.")
+	}
+
+	// Validar longitud mínima del secreto (256 bits = 32 bytes)
+	if len(secret) < 32 {
+		env := os.Getenv("GO_ENV")
+		if env == "production" {
+			log.Fatal("FATAL: JWT_SECRET debe tener al menos 32 caracteres")
+		}
+		log.Printf("ADVERTENCIA: JWT_SECRET muy corto (%d chars). Usar mínimo 32 caracteres en producción.", len(secret))
+	}
+
+	jwtSecret = []byte(secret)
+}
+
+// generateRandomSecret genera un secreto aleatorio seguro para desarrollo
+func generateRandomSecret() string {
+	bytes := make([]byte, 32)
+	if _, err := rand.Read(bytes); err != nil {
+		log.Fatal("Error generando secreto aleatorio:", err)
+	}
+	return base64.URLEncoding.EncodeToString(bytes)
+}
+
+// GetTokenExpiration retorna la duración de expiración del token
+func GetTokenExpiration() time.Duration {
+	env := os.Getenv("GO_ENV")
+	if env == "production" {
+		return 2 * time.Hour // 2 horas en producción
+	}
+	return 24 * time.Hour // 24 horas en desarrollo
+}
 
 func GenerateToken(user *entities.Usuario) (string, error) {
 	claims := &Claims{
@@ -24,8 +71,9 @@ func GenerateToken(user *entities.Usuario) (string, error) {
 		Username: user.Username,
 		Rol:      user.Rol,
 		RegisteredClaims: jwt.RegisteredClaims{
-			ExpiresAt: jwt.NewNumericDate(time.Now().Add(24 * time.Hour)),
+			ExpiresAt: jwt.NewNumericDate(time.Now().Add(GetTokenExpiration())),
 			IssuedAt:  jwt.NewNumericDate(time.Now()),
+			Issuer:    "sistema-ingreso-docente",
 		},
 	}
 
@@ -36,7 +84,7 @@ func GenerateToken(user *entities.Usuario) (string, error) {
 func ValidateToken(tokenString string) (*Claims, error) {
 	token, err := jwt.ParseWithClaims(tokenString, &Claims{}, func(token *jwt.Token) (interface{}, error) {
 		if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
-			return nil, fmt.Errorf("método de firma inválido")
+			return nil, fmt.Errorf("método de firma inválido: %v", token.Header["alg"])
 		}
 		return jwtSecret, nil
 	})
@@ -50,11 +98,4 @@ func ValidateToken(tokenString string) (*Claims, error) {
 	}
 
 	return nil, fmt.Errorf("token inválido")
-}
-
-func getEnv(key, defaultValue string) string {
-	if value := os.Getenv(key); value != "" {
-		return value
-	}
-	return defaultValue
 }

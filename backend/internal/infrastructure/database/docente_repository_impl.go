@@ -4,9 +4,19 @@ import (
 	"database/sql"
 	"encoding/json"
 	"fmt"
+	"strings"
 
 	"github.com/sistema-ingreso-docente/backend/internal/domain/entities"
 )
+
+// escapeLikePattern escapa caracteres especiales de LIKE/ILIKE para prevenir inyección
+func escapeLikePattern(pattern string) string {
+	// Escapar caracteres especiales de LIKE: %, _, \
+	pattern = strings.ReplaceAll(pattern, "\\", "\\\\")
+	pattern = strings.ReplaceAll(pattern, "%", "\\%")
+	pattern = strings.ReplaceAll(pattern, "_", "\\_")
+	return pattern
+}
 
 type DocenteRepositoryImpl struct {
 	db *sql.DB
@@ -79,7 +89,9 @@ func (r *DocenteRepositoryImpl) SearchByCI(ciPartial string) ([]*entities.Docent
 	          ORDER BY documento_identidad
 	          LIMIT 10`
 
-	rows, err := r.db.Query(query, ciPartial+"%")
+	// Escapar caracteres especiales de LIKE para prevenir inyección
+	safePattern := escapeLikePattern(ciPartial) + "%"
+	rows, err := r.db.Query(query, safePattern)
 	if err != nil {
 		return nil, err
 	}

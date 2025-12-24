@@ -3,6 +3,7 @@ package handlers
 import (
 	"encoding/json"
 	"fmt"
+	"log"
 	"net/http"
 	"regexp"
 	"strconv"
@@ -11,7 +12,11 @@ import (
 	"github.com/gorilla/mux"
 	"github.com/sistema-ingreso-docente/backend/internal/domain/entities"
 	"github.com/sistema-ingreso-docente/backend/internal/domain/usecases"
+	"github.com/sistema-ingreso-docente/backend/internal/infrastructure/security"
 )
+
+// _ es usado para mantener strconv importado (usado en SearchByCI)
+var _ = strconv.Atoi
 
 type DocenteHandler struct {
 	docenteUseCase *usecases.DocenteUseCase
@@ -98,7 +103,7 @@ func (h *DocenteHandler) GetAll(w http.ResponseWriter, r *http.Request) {
 
 func (h *DocenteHandler) GetByID(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
-	id, err := strconv.Atoi(vars["id"])
+	id, err := security.ValidateID(vars["id"])
 	if err != nil {
 		http.Error(w, `{"error":"ID inválido"}`, http.StatusBadRequest)
 		return
@@ -116,7 +121,7 @@ func (h *DocenteHandler) GetByID(w http.ResponseWriter, r *http.Request) {
 
 func (h *DocenteHandler) GetByCI(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
-	ci, err := strconv.ParseInt(vars["ci"], 10, 64)
+	ci, err := security.ValidateCIString(vars["ci"])
 	if err != nil {
 		http.Error(w, `{"error":"CI inválido"}`, http.StatusBadRequest)
 		return
@@ -163,16 +168,42 @@ func (h *DocenteHandler) Create(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// Validar CI
+	if err := security.ValidateCI(docente.DocumentoIdentidad); err != nil {
+		http.Error(w, `{"error":"Documento de identidad inválido"}`, http.StatusBadRequest)
+		return
+	}
+
+	// Validar longitud de nombre completo
+	if err := security.ValidateNombreCompleto(docente.NombreCompleto); err != nil {
+		http.Error(w, `{"error":"Nombre completo demasiado largo"}`, http.StatusBadRequest)
+		return
+	}
+
+	// Validar formato de email
+	if err := security.ValidateEmail(docente.Correo); err != nil {
+		http.Error(w, `{"error":"Formato de email inválido"}`, http.StatusBadRequest)
+		return
+	}
+
 	// Crear el docente
 	if err := h.docenteUseCase.Create(&docente); err != nil {
-		http.Error(w, `{"error":"`+err.Error()+`"}`, http.StatusBadRequest)
+		log.Printf("[ERROR] Error creando docente: %v", err)
+		http.Error(w, `{"error":"Error al crear docente"}`, http.StatusBadRequest)
 		return
 	}
 
 	// Crear automáticamente el usuario asociado con username único
 	// NOTA: No guardamos nombre_completo ni email en usuario - se obtienen del docente via JOIN
 	username := h.generateUniqueUsername(docente.NombreCompleto)
-	password := fmt.Sprintf("%d", docente.DocumentoIdentidad) // CI como contraseña inicial
+
+	// Generar contraseña segura aleatoria (no usar CI como contraseña)
+	password, err := security.GenerateSecurePassword(12)
+	if err != nil {
+		log.Printf("Error generando contraseña segura: %v", err)
+		http.Error(w, `{"error":"Error interno al crear usuario"}`, http.StatusInternalServerError)
+		return
+	}
 
 	usuario := &entities.Usuario{
 		Username: username,
@@ -185,13 +216,18 @@ func (h *DocenteHandler) Create(w http.ResponseWriter, r *http.Request) {
 	if err := h.usuarioUseCase.Create(usuario); err != nil {
 		// Si falla la creación del usuario, log pero no falla todo
 		// El docente ya fue creado, solo advertimos
-		fmt.Printf("Advertencia: No se pudo crear usuario para docente %d: %v\n", docente.ID, err)
+		log.Printf("Advertencia: No se pudo crear usuario para docente %d: %v", docente.ID, err)
 	} else {
 		// Actualizar el docente con el usuario_id
 		docente.UsuarioID = &usuario.ID
 		if err := h.docenteUseCase.Update(&docente); err != nil {
-			fmt.Printf("Advertencia: No se pudo vincular usuario %d al docente %d: %v\n", usuario.ID, docente.ID, err)
+			log.Printf("Advertencia: No se pudo vincular usuario %d al docente %d: %v", usuario.ID, docente.ID, err)
 		}
+
+		// NOTA: En producción, enviar credenciales por email seguro al docente
+		// NO loguear contraseñas en texto plano por seguridad
+		log.Printf("[INFO] Usuario creado para docente %s - Username: %s (contraseña temporal generada)",
+			docente.NombreCompleto, username)
 	}
 
 	w.Header().Set("Content-Type", "application/json")
@@ -201,7 +237,7 @@ func (h *DocenteHandler) Create(w http.ResponseWriter, r *http.Request) {
 
 func (h *DocenteHandler) Update(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
-	id, err := strconv.Atoi(vars["id"])
+	id, err := security.ValidateID(vars["id"])
 	if err != nil {
 		http.Error(w, `{"error":"ID inválido"}`, http.StatusBadRequest)
 		return
@@ -220,12 +256,35 @@ func (h *DocenteHandler) Update(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// Validar CI si se proporciona
+	if docente.DocumentoIdentidad > 0 {
+		if err := security.ValidateCI(docente.DocumentoIdentidad); err != nil {
+			http.Error(w, `{"error":"Documento de identidad inválido"}`, http.StatusBadRequest)
+			return
+		}
+	}
+
+	// Validar longitud de nombre completo
+	if docente.NombreCompleto != "" {
+		if err := security.ValidateNombreCompleto(docente.NombreCompleto); err != nil {
+			http.Error(w, `{"error":"Nombre completo demasiado largo"}`, http.StatusBadRequest)
+			return
+		}
+	}
+
+	// Validar formato de email
+	if err := security.ValidateEmail(docente.Correo); err != nil {
+		http.Error(w, `{"error":"Formato de email inválido"}`, http.StatusBadRequest)
+		return
+	}
+
 	docente.ID = id
 	// Mantener el usuario_id del docente actual
 	docente.UsuarioID = docenteActual.UsuarioID
 
 	if err := h.docenteUseCase.Update(&docente); err != nil {
-		http.Error(w, `{"error":"`+err.Error()+`"}`, http.StatusBadRequest)
+		log.Printf("[ERROR] Error actualizando docente %d: %v", id, err)
+		http.Error(w, `{"error":"Error al actualizar docente"}`, http.StatusBadRequest)
 		return
 	}
 
@@ -237,13 +296,14 @@ func (h *DocenteHandler) Update(w http.ResponseWriter, r *http.Request) {
 
 func (h *DocenteHandler) Delete(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
-	id, err := strconv.Atoi(vars["id"])
+	id, err := security.ValidateID(vars["id"])
 	if err != nil {
 		http.Error(w, `{"error":"ID inválido"}`, http.StatusBadRequest)
 		return
 	}
 
 	if err := h.docenteUseCase.Delete(id); err != nil {
+		log.Printf("[ERROR] Error eliminando docente %d: %v", id, err)
 		http.Error(w, `{"error":"Error eliminando docente"}`, http.StatusInternalServerError)
 		return
 	}

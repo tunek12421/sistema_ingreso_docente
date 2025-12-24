@@ -11,6 +11,19 @@ const (
 	EstadoInactiva   EstadoLlave = "inactiva"
 )
 
+// EstadosLlaveValidos contiene todos los estados válidos
+var EstadosLlaveValidos = map[EstadoLlave]bool{
+	EstadoDisponible: true,
+	EstadoEnUso:      true,
+	EstadoExtraviada: true,
+	EstadoInactiva:   true,
+}
+
+// IsValid verifica si el estado es válido
+func (e EstadoLlave) IsValid() bool {
+	return EstadosLlaveValidos[e]
+}
+
 type Llave struct {
 	ID          int          `json:"id"`
 	Codigo      string       `json:"codigo"`        // Código de la llave (ej: "L-B16")
